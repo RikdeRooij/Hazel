@@ -18,20 +18,23 @@ project "Sandbox"
 		"%{wks.location}/Hazel/vendor/spdlog/include",
 		"%{wks.location}/Hazel/src",
 		"%{wks.location}/Hazel/vendor",
+		"%{wks.location}/vendor/box2d",
+		"%{wks.location}/vendor/box2d/include",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.entt}"
 	}
 
 	links
 	{
-		"Hazel"
+		"Hazel",
+		"box2d"
 	}
 
 	filter "system:windows"
 		systemversion "latest"
 
 	filter "configurations:Debug"
-		defines "HZ_DEBUG"
+		defines "HZ_DEBUG;DEBUG;TRACE"
 		runtime "Debug"
 		symbols "on"
 

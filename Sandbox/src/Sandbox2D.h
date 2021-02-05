@@ -1,27 +1,55 @@
 #pragma once
 
 #include "Hazel.h"
+#include "PhysicsManager.h"
+#include "GameObject.h"
+#include "DebugDraw.h"
+#include "ObjectManager.h"
+
+class Sandbox2D;
 
 class Sandbox2D : public Hazel::Layer
 {
 public:
-	Sandbox2D();
-	virtual ~Sandbox2D() = default;
+    Sandbox2D();
+    virtual ~Sandbox2D() = default;
 
-	virtual void OnAttach() override;
-	virtual void OnDetach() override;
+    virtual void OnAttach() override;
+    virtual void OnDetach() override;
 
-	void OnUpdate(Hazel::Timestep ts) override;
-	virtual void OnImGuiRender() override;
-	void OnEvent(Hazel::Event& e) override;
+    void StartGame();
+    void DestroyGame() const;
+
+    void OnUpdate(Hazel::Timestep ts) override;
+
+    void UpdateGame(Hazel::Timestep& ts);
+    void DrawGame(Hazel::Timestep &ts);
+
+    virtual void OnImGuiRender() override;
+    void OnEvent(Hazel::Event& e) override;
+    bool OnWindowResized(Hazel::WindowResizeEvent& e);
+    void OnResize(float width, float height);
+
+    Hazel::OrthographicCameraController* GetCameraController() { return &m_CameraController; }
+
 private:
-	Hazel::OrthographicCameraController m_CameraController;
-	
-	// Temp
-	Hazel::Ref<Hazel::VertexArray> m_SquareVA;
-	Hazel::Ref<Hazel::Shader> m_FlatColorShader;
+    void beginDraw() { Hazel::Renderer2D::BeginScene(m_CameraController.GetCamera()); }
+    void endDraw() const { Hazel::Renderer2D::EndScene(); }
 
-	Hazel::Ref<Hazel::Texture2D> m_CheckerboardTexture;
+    Hazel::OrthographicCameraController m_CameraController;
+    float m_ScreenWidth = 1;
+    float m_ScreenHeight = 1;
+    float m_AspectRatio = 1;
+    
+    static ObjectManager* objectManager;
+    DebugDraw* debugDraw;
 
-	glm::vec4 m_SquareColor = { 0.2f, 0.3f, 0.8f, 1.0f };
+    Player* player;
+    GameObject* lava;
+
+    long playerMaxY = 0;
+    //long playerBestMaxY = 0;
+
+    float deltaTime = 0;
+    float dt_smooth = 0;
 };

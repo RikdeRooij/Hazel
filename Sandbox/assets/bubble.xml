@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with TexturePacker http://www.codeandweb.com/texturepacker-->
+<!-- $TexturePacker:SmartUpdate:1535a4c8c89e84b7684e15afed136c1b:02226bec21db31491dc2bfdd0216de3d:a8044e2e25941ebd5cae80967ef2a550$ -->
+<!--Format:
+n  => name of the sprite
+x  => sprite x pos in texture
+y  => sprite y pos in texture
+w  => sprite width (may be trimmed)
+h  => sprite height (may be trimmed)
+pX => x pos of the pivot point (relative to sprite width)
+pY => y pos of the pivot point (relative to sprite height)
+oX => sprite's x-corner offset (only available if trimmed)
+oY => sprite's y-corner offset (only available if trimmed)
+oW => sprite's original width (only available if trimmed)
+oH => sprite's original height (only available if trimmed)
+r => 'y' only set if sprite is rotated
+-->
+<TextureAtlas imagePath="bubble.png" width="204" height="44">
+    <sprite n="bubble_00.png" x="0" y="0" w="34" h="22" pX="0.5" pY="0.5"/>
+    <sprite n="bubble_01.png" x="34" y="0" w="34" h="22" pX="0.5" pY="0.5"/>
+    <sprite n="bubble_02.png" x="68" y="0" w="34" h="22" pX="0.5" pY="0.5"/>
+    <sprite n="bubble_03.png" x="102" y="0" w="34" h="22" pX="0.5" pY="0.5"/>
+    <sprite n="bubble_04.png" x="136" y="0" w="34" h="22" pX="0.5" pY="0.5"/>
+    <sprite n="bubble_05.png" x="170" y="0" w="34" h="22" pX="0.5" pY="0.5"/>
+    <sprite n="bubble_06.png" x="0" y="22" w="34" h="22" pX="0.5" pY="0.5"/>
+    <sprite n="bubble_07.png" x="34" y="22" w="34" h="22" pX="0.5" pY="0.5"/>
+    <sprite n="bubble_08.png" x="68" y="22" w="34" h="22" pX="0.5" pY="0.5"/>
+    <sprite n="bubble_09.png" x="102" y="22" w="34" h="22" pX="0.5" pY="0.5"/>
+    <sprite n="bubble_10.png" x="136" y="22" w="34" h="22" pX="0.5" pY="0.5"/>
+    <sprite n="bubble_11.png" x="170" y="22" w="34" h="22" pX="0.5" pY="0.5"/>
+</TextureAtlas>
