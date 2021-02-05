@@ -10,7 +10,7 @@
 ObjectManager* Sandbox2D::objectManager;
 
 Sandbox2D::Sandbox2D()
-    : Layer("Sandbox2D"), m_CameraController(1280.0f / 720.0f), player(nullptr), debugDraw(nullptr)
+    : Layer("Sandbox2D"), m_CameraController(1280.0f / 720.0f), player(nullptr), lava(nullptr), debugDraw(nullptr)
 {
     m_CameraController.SetZoomLevel(3);
     m_CameraController.OnResize(1280, 720);
@@ -22,7 +22,7 @@ void Sandbox2D::OnAttach()
 
     OnResize(float(Hazel::Application::Get().GetWindow().GetWidth()), float(Hazel::Application::Get().GetWindow().GetHeight()));
     m_CameraController.OnResize(m_ScreenWidth, m_ScreenHeight);
-    
+
 #if !DEBUG
     std::srand(std::time(nullptr));
 #else
@@ -51,7 +51,7 @@ void Sandbox2D::StartGame()
 
     debugDraw = new DebugDraw(pWorld);
     pWorld->SetDebugDraw(debugDraw);
-    
+
     glm::vec3 ctr = m_CameraController.GetCamera().GetPosition();
     objectManager->generateLevel(ctr.y);
 
@@ -87,7 +87,7 @@ glm::vec2 UpdateLava(GameObject* lava, float dt, float viewY)
     viewY -= 4.f;
 #endif
     lava->update(dt);
-    glm::vec2 lavaPos = lava->getPosition({0.5f, 0.5f});
+    glm::vec2 lavaPos = lava->getPosition({ 0.5f, 0.5f });
 
     float lavaAddSpeed = 0;
     if (lavaPos.y < viewY - (LAVA_MAX_DIST * LVL_SCALE))
@@ -141,9 +141,7 @@ void Sandbox2D::UpdateGame(Hazel::Timestep& ts)
     float zoom = m_CameraController.GetZoomLevel();
 #if !DEBUG
     if (zoom > 5.0f)
-    {
         m_CameraController.SetZoomLevel(5);
-    }
 #endif
 
     objectManager->UpdateStep(dt);
@@ -153,7 +151,7 @@ void Sandbox2D::UpdateGame(Hazel::Timestep& ts)
     objectManager->updateLevel(cam_pos.y + zoom + LVL_DIST_ADD);
     float delBelow = std::min(lavaPos.y, cam_pos.y - zoom);
     objectManager->removeObjectsBelow(delBelow - LVL_DIST_DEL);
-    
+
     auto newctr = glm::vec3(
         Interpolate::Linear(cam_pos.x, player_pos.x, dt_smooth * 0.002f),
         Interpolate::Linear(cam_pos.y, player_pos.y, dt_smooth * 0.002f),
@@ -183,7 +181,7 @@ void Sandbox2D::DrawGame(Hazel::Timestep &ts)
     if (Hazel::Input::BeginKeyPress(Hazel::Key::Minus))
         doDebugDraw = !doDebugDraw;
 
-    static bool doDebugDraw2 = true;
+    static bool doDebugDraw2 = false;
     if (Hazel::Input::BeginKeyPress(Hazel::Key::Equal))
         doDebugDraw2 = !doDebugDraw2;
 
@@ -244,8 +242,8 @@ void Sandbox2D::DrawGame(Hazel::Timestep &ts)
             }
 
             const float epsilon = 0.1f;
-            auto plyr_pos = player->GetBody()->GetPosition();
-            auto plyr_velo = player->GetBody()->GetLinearVelocity();
+            //auto plyr_pos = player->GetBody()->GetPosition();
+            //auto plyr_velo = player->GetBody()->GetLinearVelocity();
             auto plyr_fixlist = player->GetBody()->GetFixtureList();
             if (plyr_fixlist)
             {
@@ -279,12 +277,12 @@ void Sandbox2D::DrawGame(Hazel::Timestep &ts)
         Hazel::Renderer2D::EndScene();
     }
 }
- 
+
 void Sandbox2D::OnImGuiRender()
 {
     HZ_PROFILE_FUNCTION();
 
-    ImGui::Begin("Settings");
+    ImGui::Begin("Info");
 
     auto stats = Hazel::Renderer2D::GetStats();
     ImGui::Text("Renderer2D Stats:");

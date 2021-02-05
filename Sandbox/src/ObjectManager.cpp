@@ -2,7 +2,6 @@
 #include "glm/gtc/random.inl"
 #include <sstream>     // std::basic_stringstream, std::basic_istringstream, std::basic_ostringstream class templates and several typedefs
 
-
 #include <Windows.h>   // OutputDebugString, FormatMessage, ModuleFilePath...
 
 // background   =  610 x 182
@@ -15,13 +14,11 @@
 
 #define LVL_OVERLAP 2.0f
 
-#define LVL_WALLS_X ((198.f-LVL_OVERLAP) / 3.0f) // overlay background (to center)
+#define LVL_WALLS_X ((198.0f-LVL_OVERLAP) / 3.0f) // overlay background (to center)
 
 #define LVL_PLATFORM_Y 100.0f // y-dist between platforms (max)
 
 #define LVL_PLATFORM_SCALE 4.0f
-
-
 
 
 #define LVL_MIN_CHANCE 0.42f // min dist apart from not allowed values
@@ -32,8 +29,6 @@
 #define SAW_ROT_SPEED 2.0f
 #define SAW_OFFSET 32
 #define SPIKE_OFFSET 32
-
-
 
 // Debugging
 const char* DBG_GM_GO(const GameObject* go) { return (typeid(*go).name() + 10); }
@@ -90,7 +85,6 @@ ObjectManager::ObjectManager()
     }
 
     DBG_OUTPUT("allocation ObjectManager");
-
 }
 
 Textures::Type RandomTexture(Textures::Type min, Textures::Type max)
@@ -101,7 +95,8 @@ Textures::Type RandomTexture(Textures::Type min, Textures::Type max)
 }
 
 // Delete function object type. (std::for_each)
-struct Delete {
+struct Delete
+{
     int cnt = 0;
     template <class T>
     void operator ()(T*& p) { if (p) ++cnt; delete p; p = NULL; }
@@ -122,7 +117,6 @@ PhysicsManager* ObjectManager::getPhysicsMgr()
     return physicsMgr;
 }
 
-
 Player* ObjectManager::createPlayer(float x, float y, float size)
 {
     Player* player = new Player(x * LVL_SCALE, y * LVL_SCALE, size * LVL_SCALE, LVL_SCALE, physicsMgr);
@@ -133,8 +127,6 @@ Player* ObjectManager::createPlayer(float x, float y, float size)
     //objectList.push_back(player);
     return player;
 }
-
-
 
 GameObject* ObjectManager::createLava(float x, float y, float w, float h)
 {
@@ -158,11 +150,10 @@ GameObject* ObjectManager::createLava(float x, float y, float w, float h)
     auto texture = textures[Textures::Lava];
 
     //glm::vec2 texSize = { texture.get()->GetWidth(), texture.get()->GetHeight() };
-
     //GameObject* lava = new GameObject(physBody, texture, { texSize.x * LVL_SCALE, texSize.y * LVL_SCALE }, { .5f, 1.0f });
 
     GameObject* lava = new GameObject(physBody, texture, { w * LVL_SCALE, h * LVL_SCALE }, { .5f, 0.94f });
-    lava->setTilingFactor({ w / h, 1.0f});
+    lava->setTilingFactor({ w / h, 1.0f });
     lava->dontDestroy = true;
     lava->type = Objects::Lava;
     lava->setDrawLayer(3);
@@ -201,7 +192,6 @@ GameObject* ObjectManager::addBackground(float &y)
     bool flip = abs(i % 2) == 1;
 
     GameObject* object = new GameObject(bgTex, { 0, (y - bgHeight) * LVL_SCALE }, { (flip ? -bgSize.x : bgSize.x) * LVL_SCALE, bgSize.y * LVL_SCALE }, { 0.5f, 0.f });
-    //object->dontDraw = true; // already drawn by graphicsMgr
     object->type = Objects::Background;
 
     DBG_OUTPUT("Added: %s *LVL_BG*", DBG_GM_GO(object));
@@ -221,21 +211,22 @@ GameObject* ObjectManager::addLeftWall(float offX, float &y)
 
     GameObject* object = createBoxPhysicsObject({ (-offX - lwallSize.x * 0.0f), (y - h) }, lwallSize, { 1, 0 }, 0,
                                                 lwallTex, staticBody, LVL_FIXTURE);
-
-    //object->dontDraw = true; // already drawn by graphicsMgr
     object->type = Objects::Wall;
     object->setDrawLayer(3);
-    
+
     // fill gabs
-    if (texType == Textures::Lvl_Wall_Left_Big_0) {
+    if (texType == Textures::Lvl_Wall_Left_Big_0)
+    {
         addSawblade(-(offX - SAW_OFFSET), y - h + lwallSize.y * 0.75f);
     }
-    else if (texType == Textures::Lvl_Wall_Left_Big_1) {
+    else if (texType == Textures::Lvl_Wall_Left_Big_1)
+    {
         addSawblade(-(offX - SAW_OFFSET), y - h + lwallSize.y * 0.25f);
     }
 
     // spike wall
-    if (randfunc(0.0f, 1.0f) < LVL_SPIKE_CHANCE) {
+    if (randfunc(0.0f, 1.0f) < LVL_SPIKE_CHANCE)
+    {
         addSpikes(-(offX - SPIKE_OFFSET), y, -90);
     }
 
@@ -256,20 +247,22 @@ GameObject* ObjectManager::addRightWall(float offX, float &y)
 
     GameObject* object = createBoxPhysicsObject({ (offX + rwallSize.x * 0.0f), (y - h) }, rwallSize, { 0, 0 }, 0,
                                                 rwallTex, staticBody, LVL_FIXTURE);
-    //object->dontDraw = true; // already drawn by graphicsMgr
     object->type = Objects::Wall;
     object->setDrawLayer(3);
 
     // fill gabs
-    if (texType == Textures::Lvl_Wall_Right_Big_0) {
+    if (texType == Textures::Lvl_Wall_Right_Big_0)
+    {
         addSawblade(offX - SAW_OFFSET, y - h + rwallSize.y * 0.75f);
     }
-    else if (texType == Textures::Lvl_Wall_Right_Big_1) {
+    else if (texType == Textures::Lvl_Wall_Right_Big_1)
+    {
         addSawblade(offX - SAW_OFFSET, y - h + rwallSize.y * 0.25f);
     }
-    
+
     // spike wall
-    if (randfunc(0.0f, 1.0f) < LVL_SPIKE_CHANCE) {
+    if (randfunc(0.0f, 1.0f) < LVL_SPIKE_CHANCE)
+    {
         addSpikes(offX - SPIKE_OFFSET, y, 90);
     }
 
@@ -285,11 +278,9 @@ GameObject* ObjectManager::addPlatform(float x, float y, glm::vec2 org, float an
 
     float h = (texSize.y - LVL_OVERLAP);
     y += h;
-    
+
     GameObject* object = createBoxPhysicsObject({ (x), (y - h) }, texSize, { org.x,  org.y }, angle,
                                                 tex, staticBody, LVL_FIXTURE);
-
-    //object->dontDraw = true; // already drawn by graphicsMgr
     object->type = Objects::Platform;
     object->setDrawLayer(1);
 
@@ -310,7 +301,6 @@ GameObject* ObjectManager::addSawblade(float x, float y)
 
     b2Body* sensorBody = physicsMgr->addCircle(x * LVL_SCALE, y * LVL_SCALE, r * 0.46f * LVL_SCALE, staticBody, &FixtureData::SENSOR);
 
-
     b2RevoluteJointDef jointDef;
     jointDef.Initialize(physBody, sensorBody, physBody->GetWorldCenter());
     jointDef.enableLimit = false;
@@ -322,7 +312,6 @@ GameObject* ObjectManager::addSawblade(float x, float y)
     physBody->SetAngularVelocity(SAW_ROT_SPEED * -d);
 
     GameObject* object = new GameObject(physBody, sawTex, { (sawSize.x * d) * LVL_SCALE, sawSize.y * LVL_SCALE }, { 0.5f, 0.5f });
-    //object->dontDraw = true; // already drawn by graphicsMgr
     object->type = Objects::SawBlade;
     object->setDrawLayer(2);
 
@@ -335,18 +324,15 @@ GameObject* ObjectManager::addSawblade(float x, float y)
     return object;
 }
 
-
 GameObject* ObjectManager::addSpike(float x, float y, float angle)
 {
     auto spikeTex = textures[Textures::Spike];
     auto spikeSize = glm::vec2(spikeTex.get()->GetWidth(), spikeTex.get()->GetHeight());
 
-    b2Body* physBody = physicsMgr->addBox((x) * LVL_SCALE, (y) * LVL_SCALE,
+    b2Body* physBody = physicsMgr->addBox((x)* LVL_SCALE, (y)* LVL_SCALE,
         (float)spikeSize.x * LVL_SCALE, (float)spikeSize.y * LVL_SCALE, angle, staticBody, &FixtureData::SENSOR);
 
-
     GameObject* object = new GameObject(physBody, spikeTex, { spikeSize.x * LVL_SCALE, spikeSize.y * LVL_SCALE }, { .5f, .5f });
-    //object->dontDraw = true; // already drawn by graphicsMgr
     object->type = Objects::Spike;
     object->setDrawLayer(2);
 
@@ -368,7 +354,6 @@ void ObjectManager::addSpikes(float x, float y, float angle)
     //glm::vec2 norm(cos(radn), sin(radn));
     glm::vec2 start(x + cos(radn) * size.y * 0.4f, y + sin(radn) * size.y * 0.4f);
 
-
     for (int i = 0; i <= count; i++)
     {
         float a = (i - count * 0.5f) * size.x;
@@ -377,7 +362,6 @@ void ObjectManager::addSpikes(float x, float y, float angle)
         addSpike(pos.x, pos.y, angle);
     }
 }
-
 
 // Player can squeeze through
 #define LVL_PLAYER_X 0.5f
@@ -396,18 +380,22 @@ void ObjectManager::addPlatforms(float wallOffX)
         rx = randfunc(-1.0f, 1.0f);
 
     // previous step placed 2 platform (ends are blocked most likely)
-    if (lvl_prev_double) {
-        if (tex == Textures::Lvl_Platform_1 && abs(rx) < 0.5f) { // no large platform near center
+    if (lvl_prev_double)
+    {
+        if (tex == Textures::Lvl_Platform_1 && abs(rx) < 0.5f)
+        {
+            // no large platform near center
             rx = sign(rx) * (1.0f - abs(rx) * 0.2f); // force to side
         }
     }
 
     // do not place large platform in center
     max = 2;
-    while (tex == Textures::Lvl_Platform_1 && abs(rx) < LVL_MIN_CHANCE) {
+    while (tex == Textures::Lvl_Platform_1 && abs(rx) < LVL_MIN_CHANCE)
+    {
         float trx = randfunc(-1.0f, 1.0f);
         rx = sign(trx) * fmax(abs(trx), abs(rx)); // keep max
- //       addSpike(wallOffX * rx, lvl_y, max * 45.0f);
+        //addSpike(wallOffX * rx, lvl_y, max * 45.0f);
         if (--max <= 0) break;
     }
 
@@ -436,11 +424,8 @@ void ObjectManager::addPlatforms(float wallOffX)
     }
 }
 
-
-
 void ObjectManager::generateLevel(float y)
 {
-    //addPlatform(-400, -300, glm::vec2(0, 0), Textures::Lvl_Platform_0);
     auto floor = addPlatform(0, LVL_END_Y, { 0.5f, 1 }, 0, Textures::Lvl_Ground);
     floor->type = Objects::Ground;
 
@@ -454,7 +439,6 @@ void ObjectManager::generateLevel(float y)
     while (lvl_y < y / LVL_SCALE && lvl_c_y < y / LVL_SCALE)
         updateLevel(y);
 }
-
 
 void ObjectManager::updateLevel(float y)
 {
@@ -478,14 +462,11 @@ void ObjectManager::updateLevel(float y)
     }
 }
 
-
-
 int ObjectManager::removeObjectsBelow(float y)
 {
     int count = 0;
     for (std::list<GameObject*>::iterator i = objectList.begin(); i != objectList.end();)
     {
-        //DBG_OUTPUT("xxx: %f", poss.y);
         if ((*i)->dontDestroy)
         {
             i++; //next object
@@ -507,7 +488,6 @@ int ObjectManager::removeObjectsBelow(float y)
         DBG_OUTPUT("Deleted objects: %d", count);
     return count;
 }
-
 
 void ObjectManager::UpdateStep(float dt)
 {

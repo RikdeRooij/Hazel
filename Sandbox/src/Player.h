@@ -1,7 +1,6 @@
 #pragma once
 
 #include "PhysicsManager.h"
-
 #include "GameObject.h"
 
 class Player :
@@ -59,7 +58,7 @@ protected:
     float lastJumpTime;
 
 
-    void PlayJumpSound() { } //PlayJumpSound(RandomInt(_countof(jumpSound)));
+    void PlayJumpSound() {} //PlayJumpSound(RandomInt(_countof(jumpSound)));
 
     void PlayJumpSound(int i)
     {

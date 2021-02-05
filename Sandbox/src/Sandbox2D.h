@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Hazel.h"
-#include "PhysicsManager.h"
 #include "GameObject.h"
 #include "DebugDraw.h"
 #include "ObjectManager.h"
@@ -40,7 +39,7 @@ private:
     float m_ScreenWidth = 1;
     float m_ScreenHeight = 1;
     float m_AspectRatio = 1;
-    
+
     static ObjectManager* objectManager;
     DebugDraw* debugDraw;
 

@@ -158,11 +158,13 @@ namespace Interpolate
     // Interpolates between from and to by value in the range from2 and to2 (clamped between 0 and 1).
     inline float Linear(float from, float to, float from2, float to2, float value)
     {
-        if (from2 < to2) {
+        if (from2 < to2)
+        {
             if (value < from2) value = from2;
             else if (value > to2) value = to2;
         }
-        else {
+        else
+        {
             if (value < to2) value = to2;
             else if (value > from2) value = from2;
         }

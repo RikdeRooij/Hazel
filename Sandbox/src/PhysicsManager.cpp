@@ -78,7 +78,8 @@ b2Body* PhysicsManager::createPhysicsObject(float x, float y, float size)
 
     b2Body* bodies[NUM_SEGMENTS];
 
-    for (int i = 0; i < NUM_SEGMENTS; i++) {
+    for (int i = 0; i < NUM_SEGMENTS; i++)
+    {
         float theta = deltaAngle * i;
 
         float tmp_x = cosf(theta);
@@ -113,7 +114,8 @@ b2Body* PhysicsManager::createPhysicsObject(float x, float y, float size)
     b2PrismaticJointDef prisJointDef;
     //b2Vec2 worldAxis(1.0f, 0.0f);
 
-    for (int i = 0; i < NUM_SEGMENTS; i++) {
+    for (int i = 0; i < NUM_SEGMENTS; i++)
+    {
         int neighborIndex = (i + 1) % NUM_SEGMENTS;
 
         b2Body* currentBody = bodies[i];

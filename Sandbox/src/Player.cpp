@@ -57,9 +57,7 @@ Player::Player(float x, float y, float size, float scale, PhysicsManager* physic
 
     time = 0;
 
-
     m_body = physBody;
-
 
     //dontDestroy = false;
     dontDraw = false;
@@ -145,7 +143,7 @@ void Player::update(float dt)
 
         b2Vec2 wmNormal = worldManifold.normal;
         auto normal = b2Vec2(abs(wmNormal.x) * ctrDirVec.x,
-                               abs(wmNormal.y) * ctrDirVec.y);
+                             abs(wmNormal.y) * ctrDirVec.y);
         normal.Normalize();
 
         bool isGround = (normal.y < 0 && abs(normal.x) < GROUND_NORMAL);
@@ -181,7 +179,6 @@ void Player::update(float dt)
     }
 
 
-
     if (Hazel::Input::BeginKeyPress(Hazel::Key::X))
         Explode();
 
@@ -195,11 +192,8 @@ void Player::update(float dt)
     bool airborne = inside ||
         (!grounded && !wallLeft && !wallRight && !ceiling);
 
-
     float damping = !inside && grounded ? MOVE_DAMPING : 0;
     GetBody()->SetLinearDamping(damping);
-
-
 
     float move_pwr_scale = grounded ? 1.0f :
         fmax(airborne ? 0 : MOVE_AIR_COLLDING,
@@ -209,7 +203,7 @@ void Player::update(float dt)
 
     float power = (mass / move_falloff) * move_pwr_scale;
 
-    bool allowJump =  !inside && vel.y < 3.1f && 
+    bool allowJump = !inside && vel.y < 3.1f &&
         (grounded || !ceiling || wallLeft || wallRight);
     float jumpDeltaTime = abs(time - lastJumpTime);
     if (allowJump && (jumpDeltaTime > MOVE_JUMP_TIME))
@@ -275,7 +269,6 @@ void Player::update(float dt)
         this->width = -std::abs(width);
     }
 
-
     if (Hazel::Input::IsKeyPressed(Hazel::Key::Down)
         // || Hazel::Input::IsKeyPressed(Hazel::Key::S)
         )
@@ -290,10 +283,8 @@ void Player::update(float dt)
         GetBody()->SetAwake(false);
     }
 
-
     GameObject::update(dt);
 }
-
 
 void Player::moveX(float power) const
 {
@@ -307,7 +298,6 @@ void Player::moveX(float power) const
     GetBody()->ApplyLinearImpulse(impulse, impulsePoint, true);
 }
 
-
 void Player::Jump(float x, float power) const
 {
     if (dead)
@@ -318,7 +308,6 @@ void Player::Jump(float x, float power) const
     b2Vec2 impulse = b2Vec2(x, power);
     GetBody()->SetLinearVelocity(impulse);
 }
-
 
 void Player::MoveDown()
 {
@@ -332,8 +321,6 @@ void Player::MoveDown()
     b2Vec2 impulsePoint = GetBody()->GetPosition();
     GetBody()->ApplyLinearImpulse(impulse, impulsePoint, true);
 }
-
-
 
 void Player::Explode()
 {}
@@ -351,5 +338,3 @@ void Player::Die()
 
     dead = true;
 }
-
-

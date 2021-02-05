@@ -100,8 +100,7 @@ glm::vec2 GameObject::getPosition(glm::vec2 origin) const
 }
 
 void GameObject::Die()
-{
-}
+{}
 
 
 void GameObject::update(float time)
@@ -122,7 +121,7 @@ void GameObject::draw(int layer)
         return;
     if (this->draw_layer != layer)
         return;
-    
+
     //float px = posx - abs(width) * 0.5f + origin.x;
     //float py = posy - height * 0.5f + origin.y;
 

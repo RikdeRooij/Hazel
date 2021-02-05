@@ -1,6 +1,4 @@
-#ifndef OBJECTMANAGER_H_INCLUDED
-#define OBJECTMANAGER_H_INCLUDED
-
+#pragma once
 
 #include "PhysicsManager.h"
 
@@ -64,7 +62,7 @@ public:
     GameObject* createLava(float x, float y, float w, float h);
 
     static GameObject* createBox(float x, float y, float w, float h, glm::vec4 color,
-                          const BodyType bodyType, const FixtureData* fixtureData = &FixtureData::DEFAULT);
+                                 const BodyType bodyType, const FixtureData* fixtureData = &FixtureData::DEFAULT);
 
     GameObject* addBackground(float &y);
     GameObject* addLeftWall(float offX, float &y);
@@ -89,10 +87,10 @@ public:
 protected:
 
     GameObject* createBoxPhysicsObject(glm::vec2 pos, glm::vec2 size, glm::vec2 origin, float angle, TextureRef tex,
-                                    const BodyType bodyType = staticBody, const FixtureData * fixtureData = LVL_FIXTURE)
+                                       const BodyType bodyType = staticBody, const FixtureData * fixtureData = LVL_FIXTURE)
     {
-        b2Body* physBody = physicsMgr->addBox((pos.x) * LVL_SCALE, (pos.y) * LVL_SCALE, 
-                                              (size.x) * LVL_SCALE, (size.y) * LVL_SCALE,
+        b2Body* physBody = physicsMgr->addBox((pos.x) * LVL_SCALE, (pos.y) * LVL_SCALE,
+            (size.x) * LVL_SCALE, (size.y) * LVL_SCALE,
                                               angle, bodyType, fixtureData,
                                               origin.x, origin.y);
 
@@ -126,4 +124,3 @@ private:
 
 };
 
-#endif // !OBJECTMANAGER_H_INCLUDED

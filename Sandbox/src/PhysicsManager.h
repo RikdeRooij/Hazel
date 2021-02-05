@@ -28,7 +28,7 @@ static b2Vec2 flattenVector(const b2Vec2& vector, const b2Vec2& axis, float damp
 static b2Vec2 clipVector(const b2Vec2& vector, const b2Vec2& normal, float overbounce = 1)
 {
     float dot = b2Dot(vector, normal);
-    if (dot >= 0) 
+    if (dot >= 0)
         return vector;
     float len = b2Dot(normal, normal);
     float f = len > 1.401298E-45f ? (dot / len) : 0;
