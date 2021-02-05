@@ -2,7 +2,7 @@ include "./vendor/premake/premake_customization/solution_items.lua"
 
 workspace "Hazel"
 	architecture "x86_64"
-	startproject "Hazelnut"
+	startproject "Sandbox"
 
 	configurations
 	{
@@ -31,7 +31,6 @@ IncludeDir["ImGui"] = "%{wks.location}/Hazel/vendor/imgui"
 IncludeDir["glm"] = "%{wks.location}/Hazel/vendor/glm"
 IncludeDir["stb_image"] = "%{wks.location}/Hazel/vendor/stb_image"
 IncludeDir["entt"] = "%{wks.location}/Hazel/vendor/entt/include"
-IncludeDir["yaml_cpp"] = "%{wks.location}/Hazel/vendor/yaml-cpp/include"
 IncludeDir["ImGuizmo"] = "%{wks.location}/Hazel/vendor/ImGuizmo"
 IncludeDir["box2d"] = "%{wks.location}/vendor/box2d/include"
 
@@ -40,10 +39,8 @@ group "Dependencies"
 	include "Hazel/vendor/GLFW"
 	include "Hazel/vendor/Glad"
 	include "Hazel/vendor/imgui"
-	include "Hazel/vendor/yaml-cpp"
 	include "vendor/box2d"
 group ""
 
 include "Hazel"
 include "Sandbox"
-include "Hazelnut"
