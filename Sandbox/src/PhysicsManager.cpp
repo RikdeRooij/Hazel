@@ -4,9 +4,9 @@
 
 //#include <sstream>     // std::basic_stringstream, std::basic_istringstream, std::basic_ostringstream class templates and several typedefs 
 
+using namespace Jelly;
 
 // ----------------
-
 
 // Predefined fixtures type.
 #define FD_TYPE FixtureData
@@ -242,6 +242,15 @@ b2Body* PhysicsManager::AddCircle(float x, float y, float radius, const BodyType
     return bodyBox;
 }
 
+void PhysicsManager::Update(float time) const
+{
+    // Update the world
+    //this->physicsWorld->Step(P_TIMESTEP, velocityIterations, positionIterations);
+    this->physicsWorld->Step(time, velocityIterations, positionIterations);
+    this->physicsWorld->ClearForces();
+
+    //for (b2Body* BodyIterator = physicsWorld->GetBodyList(); BodyIterator != 0; BodyIterator = BodyIterator->GetNext())
+}
 
 unsigned int PhysicsManager::RemoveBody(b2Body* body)
 {
@@ -267,41 +276,30 @@ unsigned int PhysicsManager::RemoveBody(b2Body* body)
     return 1 + static_cast<unsigned int>(links.size());
 }
 
-
-void PhysicsManager::Update(float time) const
-{
-    // Update the world
-    //this->physicsWorld->Step(P_TIMESTEP, velocityIterations, positionIterations);
-    this->physicsWorld->Step(time, velocityIterations, positionIterations);
-    this->physicsWorld->ClearForces();
-
-    //for (b2Body* BodyIterator = physicsWorld->GetBodyList(); BodyIterator != 0; BodyIterator = BodyIterator->GetNext())
-}
-
-/*
-int PhysicsManager::removePhysicBodies(int leftLimit, int rightLimit, int upLimit, int downLimit)
+int PhysicsManager::RemovePhysicBodies(int leftLimit, int rightLimit, int upLimit, int downLimit)
 {
     int count = 0;
-    //for (b2Body* BodyIterator = physicsWorld->GetBodyList(); BodyIterator != 0; BodyIterator = BodyIterator->GetNext())
     for (std::list<b2Body*>::iterator i = physicsObjectList.begin(); i != physicsObjectList.end();)
     {
-        if (((*i)->GetPosition().x*RATIO < leftLimit) || ((*i)->GetPosition().x*RATIO > rightLimit) ||
-            ((*i)->GetPosition().y*RATIO < upLimit) || ((*i)->GetPosition().y*RATIO > downLimit))
+        auto pos = (*i)->GetPosition();
+        if ((pos.x*RATIO < leftLimit) || (pos.x*RATIO > rightLimit) ||
+            (pos.y*RATIO < upLimit) || (pos.y*RATIO > downLimit))
         {
             physicsWorld->DestroyBody(*i);
             i = physicsObjectList.erase(i); //update iterator
             count++;
         }
         else
-            i++; //next body
+            ++i; //next body
     }
     if (count > 0)
-        DBG_PM("Deleted bodies: %d", count);
+        DBG_OUTPUT("Deleted bodies: %d", count);
     return count;
 }
-*/
 
 // --------------------------------
+
+#pragma region COLLISIONS
 
 void PhysicsManager::BeginContact(b2Contact* contact)
 {
@@ -456,7 +454,6 @@ void PreSolvePlayerCollision(b2Contact * contact, b2Vec2 cnormal, GameObject * g
     auto below = (plyr_mins.y < obj_maxs.y - epsilon);
     //auto wasbelow = (plyr_prevpos.y < obj_maxs.y - epsilon);
 
-
     if (cnormal.y > -0.1f || plyr_velo.y > 0.1f || (below))
     {
         //if (!Intersects(plyr_aabb, obj_aabb))
@@ -495,6 +492,11 @@ void PhysicsManager::PreSolve(b2Contact* contact, const b2Manifold* oldManifold)
         if (!goA || !goB)
             return;
 
+        if (goA->debugMode || goB->debugMode)
+        {
+            contact->SetEnabled(false);
+        }
+
         b2Vec2 cnormal = contact->GetManifold()->localNormal;
 
         if (goA->type == Objects::Player && goB->type == Objects::Platform)
@@ -511,3 +513,5 @@ void PhysicsManager::PreSolve(b2Contact* contact, const b2Manifold* oldManifold)
 
 //void PhysicsManager::PreSolve(b2Contact* contact, const b2Manifold* oldManifold) { } 
 void PhysicsManager::PostSolve(b2Contact* contact, const b2ContactImpulse* impulse) {}
+
+#pragma endregion COLLISIONS

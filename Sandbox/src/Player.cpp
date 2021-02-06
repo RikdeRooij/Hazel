@@ -2,7 +2,8 @@
 #include "Hazel/Renderer/Renderer2D.h"
 #include "Hazel/Core/Input.h"
 #include "DebugDraw.h"
-#include "Sandbox2D.h"
+
+using namespace Jelly;
 
 //#define TEST 1
 
@@ -11,7 +12,7 @@
 #define MOVE_SIDE (3.0f * PM_SCALE) // Horizontal (left-right) movement power
 #define MOVE_SIDE_LIMIT (4.0f * PM_SCALE) // Horizontal (left-right) movement limit
 
-#define MOVE_JUMP_UP (8.0f * PM_SCALE) // jump power
+#define MOVE_JUMP_UP (7.0f * PM_SCALE) // jump power
 #define MOVE_JUMP_TIME 200 // min time in milliseconds between jumps
 
 #define MOVE_WALLJUMP_UP (5.0f * PM_SCALE) // wall-jump up power
@@ -65,10 +66,16 @@ Player::Player(float x, float y, float size, float scale, PhysicsManager* physic
     //dontDestroy = false;
     dontDraw = false;
 
-    this->tex = Hazel::Texture2D::Create("assets/Jelly.png");
-    //glm::vec2 tsize = { tex.get()->GetWidth(), tex.get()->GetHeight() };
     width = size + 0.1f;// tsize.x * scale;
     height = size + 0.1f;//tsize.y * scale;
+
+    this->tex = Hazel::Texture2D::Create("assets/Jelly2.png");
+    glm::vec2 tsize = { tex.get()->GetWidth(), tex.get()->GetHeight() };
+    float tdx = (size + 0.08f) / tsize.x;
+    float tdy = (size + 0.08f) / tsize.y;
+    float td = max(tdx, tdy);
+    width = tsize.x * td;// +0.05f;
+    height = tsize.y * td;// +0.05f;
 
     posx = m_body->GetPosition().x * RATIO;
     posy = m_body->GetPosition().y * RATIO;
@@ -132,7 +139,7 @@ void Player::Update(float dt)
     {
         debugMode = !debugMode;
         //GetBody()->SetType(debugMode ? b2_kinematicBody : b2_dynamicBody);
-        GetBody()->SetGravityScale(debugMode ? 0 : 1);
+        GetBody()->SetGravityScale(debugMode ? 0.f : 1.f);
     }
 
     if (debugMode)
@@ -165,6 +172,12 @@ void Player::Update(float dt)
     GameObject::Update(dt);
 }
 
+bool IsKeyPressed(Hazel::KeyCode key, Hazel::KeyCode alt)
+{
+    return Hazel::Input::IsKeyPressed(key)
+        || Hazel::Input::IsKeyPressed(alt);
+}
+
 void Player::UpdateMove(b2Vec2& vel)
 {
     float mass = GetBody()->GetMass();
@@ -188,9 +201,7 @@ void Player::UpdateMove(b2Vec2& vel)
     float jumpDeltaTime = abs(time - lastJumpTime);
     if (allowJump && (jumpDeltaTime > MOVE_JUMP_TIME))
     {
-        if (Hazel::Input::IsKeyPressed(Hazel::Key::Up)
-            // || Hazel::Input::IsKeyPressed(Hazel::Key::W)
-            )
+        if (IsKeyPressed(Hazel::Key::Up, Hazel::Key::W))
         {
             //if(grounded) DBG_OUTPUT("_JUMP %.1f", vel.y);
 
@@ -231,9 +242,7 @@ void Player::UpdateMove(b2Vec2& vel)
     }
 
 
-    if (Hazel::Input::IsKeyPressed(Hazel::Key::Left)
-        // || Hazel::Input::IsKeyPressed(Hazel::Key::A)
-        )
+    if (IsKeyPressed(Hazel::Key::Left, Hazel::Key::A))
     {
 #if TEST
         float limit = clamp01(MOVE_SIDE_LIMIT + vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME);
@@ -246,9 +255,7 @@ void Player::UpdateMove(b2Vec2& vel)
         this->width = std::abs(width);
     }
 
-    if (Hazel::Input::IsKeyPressed(Hazel::Key::Right)
-        // || Hazel::Input::IsKeyPressed(Hazel::Key::D)
-        )
+    if (IsKeyPressed(Hazel::Key::Right, Hazel::Key::D))
     {
 #if TEST
         float limit = clamp01(MOVE_SIDE_LIMIT - vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME);
@@ -261,9 +268,7 @@ void Player::UpdateMove(b2Vec2& vel)
         this->width = -std::abs(width);
     }
 
-    if (Hazel::Input::IsKeyPressed(Hazel::Key::Down)
-        // || Hazel::Input::IsKeyPressed(Hazel::Key::S)
-        )
+    if (IsKeyPressed(Hazel::Key::Down, Hazel::Key::S))
     {
         Move( 0.f, -1.f );
     }
@@ -397,7 +402,8 @@ void Player::Move(float dx, float dy) const
 
 void Player::Explode()
 {
-    Sandbox2D::sandbox2D->EmitParticles(posx, posy, 100, m_Particle);
+    m_Particle.Position = { posx , posy };
+    ParticleSystem::S_Emit(100, m_Particle);
 }
 
 void Player::Die()

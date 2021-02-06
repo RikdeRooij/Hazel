@@ -4,6 +4,8 @@
 
 #include <Windows.h>   // OutputDebugString, FormatMessage, ModuleFilePath...
 
+using namespace Jelly;
+
 // background   =  610 x 182
 // big-walls    =  198 x 640
 // small-walls  =  198 x 246

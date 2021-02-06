@@ -28,6 +28,7 @@
 
 #pragma endregion [INCLUDES]
 
+
 ///////////////////////////////////////////////////////////////////
 
 
@@ -62,6 +63,11 @@ typedef unsigned long ulong;
 
 template <typename T> inline T sign(T val) { return val < 0 ? T(-1) : T(1); } // val < 0 ? -1 : 1;
 template <typename T> inline T sign0(T val) { return val < -EPSILON ? -1 : val > EPSILON ? 1 : 0; }
+
+#define MAX(a, b) (b > a ? b : a)
+template<typename T> inline T max(T a, T b) { return (b > a ? b : a); }
+#define MIN(a, b) (b < a ? b : a)
+template<typename T> inline T min(T a, T b) { return (b < a ? b : a); }
 
 // Clamp value between minimum and maximum.
 #define CLAMP(val, min, max) ((val) < (min) ? (min) : ((val) > (max) ? (max) : (val)))

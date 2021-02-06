@@ -1,11 +1,14 @@
 #pragma once
 
-#define GLM_ENABLE_EXPERIMENTAL
+#include "box2d/b2_draw.h"
+#include "box2d/b2_world.h"
 
-#include <Box2D/Box2D.h>
-#include "Hazel/Renderer/OrthographicCameraController.h"
+#include "glm/vec2.hpp"
+#include "glm/vec4.hpp"
 
-class DebugDraw : public b2Draw
+#include <functional>
+
+class DebugDraw : public b2Draw
 {
 public:
 
@@ -16,7 +19,7 @@ public:
     }
 
     virtual ~DebugDraw() {}
-    
+
     virtual void DrawPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override;
 
     virtual void DrawSegment(const b2Vec2& p1, const b2Vec2& p2, const b2Color& color) override;
@@ -51,7 +54,5 @@ private:
     //void(*m_EndDraw)() = nullptr;
     std::function<void()> m_BeginDraw = nullptr;
     std::function<void()> m_EndDraw = nullptr;
-
-    //const Hazel::OrthographicCameraController* m_CameraController = nullptr;
 
 };

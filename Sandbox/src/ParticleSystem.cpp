@@ -2,14 +2,23 @@
 
 #include "Globals.h"
 
-#include <glm/gtc/constants.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/compatibility.hpp>
 #include "Hazel/Renderer/Renderer2D.h"
 
+using namespace Jelly;
+
+ParticleSystem* ParticleSystem::instance = nullptr;
+
 ParticleSystem::ParticleSystem()
 {
+    this->instance = this;
     m_ParticlePool.resize(1000);
+}
+
+ParticleSystem::~ParticleSystem()
+{
+    this->instance = nullptr;
 }
 
 void ParticleSystem::OnUpdate(float ts)

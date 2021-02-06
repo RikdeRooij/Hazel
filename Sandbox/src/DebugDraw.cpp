@@ -1,7 +1,6 @@
 #include "DebugDraw.h"
 
 #include "Hazel/Renderer/Renderer2D.h"
-#include "glm/gtx/matrix_factorisation.hpp"
 #include <stdlib.h>
 #include "Globals.h"
 

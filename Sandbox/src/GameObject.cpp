@@ -2,6 +2,8 @@
 #include "GameObject.h"
 #include "Hazel/Renderer/Renderer2D.h"
 
+using namespace Jelly;
+
 unsigned long GameObject::instanceCount = 0;
 
 GameObject::GameObject()
