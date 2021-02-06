@@ -37,7 +37,6 @@ void DrawRect(const int32 &vertexCount, const b2Vec2 * vertices, const b2Color &
     Hazel::Renderer2D::DrawQuad({ p.x*RATIO, p.y*RATIO, PZ }, { w*RATIO, h*RATIO }, { color.r, color.g, color.b, color.a * alp });
 }
 
-
 void DrawLine(const b2Vec2 & p1, const b2Vec2 & p2, const b2Color & color)
 {
     auto a = glm::vec2(p1.x, p1.y);
@@ -106,7 +105,6 @@ void DebugDraw::DrawSolidCircle(const b2Vec2& center, float radius, const b2Vec2
 
 void DebugDraw::DrawPoint(const b2Vec2& p, float size, const b2Color& color)
 {
-    //throw std::logic_error("The method or operation is not implemented.");
     if (size > 1.f)
         size = 1.f;
     if (m_BeginDraw != nullptr) m_BeginDraw();
@@ -116,7 +114,6 @@ void DebugDraw::DrawPoint(const b2Vec2& p, float size, const b2Color& color)
 
 void DebugDraw::DrawSolidPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color)
 {
-    //throw std::logic_error("The method or operation is not implemented.");
     if (m_BeginDraw != nullptr) m_BeginDraw();
     ::DrawRect(vertexCount, vertices, color);
     if (m_EndDraw != nullptr) m_EndDraw();

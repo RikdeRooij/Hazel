@@ -2,6 +2,7 @@
 
 #include "PhysicsManager.h"
 #include "GameObject.h"
+#include "ParticleSystem.h"
 
 class Player :
     public GameObject
@@ -32,6 +33,7 @@ public:
     bool ceiling = false;
     bool inside = false;
 
+    float speed = 0;
 
 #if DEBUG
     typedef struct ContactData
@@ -57,12 +59,13 @@ protected:
     float time;
     float lastJumpTime;
 
-
     void PlayJumpSound() {} //PlayJumpSound(RandomInt(_countof(jumpSound)));
 
     void PlayJumpSound(int i)
     {
 
     }
+
+    ParticleProps m_Particle;
 
 };

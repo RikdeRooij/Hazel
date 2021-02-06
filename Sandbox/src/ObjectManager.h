@@ -11,7 +11,7 @@
 
 #define LVL_SCALE 0.01f
 //#define LVL_FIXTURE &FixtureData::DEFAULT // BOX2D
-#define LVL_FIXTURE &FixtureData::TEST
+#define LVL_FIXTURE &FixtureData::LEVEL
 
 
 namespace Textures

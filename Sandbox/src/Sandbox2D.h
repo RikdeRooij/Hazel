@@ -4,12 +4,14 @@
 #include "GameObject.h"
 #include "DebugDraw.h"
 #include "ObjectManager.h"
+#include "ParticleSystem.h"
 
 class Sandbox2D;
 
 class Sandbox2D : public Hazel::Layer
 {
 public:
+    static Sandbox2D* sandbox2D;
     Sandbox2D();
     virtual ~Sandbox2D() = default;
 
@@ -31,6 +33,14 @@ public:
 
     Hazel::OrthographicCameraController* GetCameraController() { return &m_CameraController; }
 
+    void EmitParticles(float x, float y, int count) { EmitParticles(x, y, count, m_Particle); }
+    void EmitParticles(float x, float y, int count, ParticleProps& particleProps)
+    {
+        particleProps.Position = { x , y };
+        for (int i = 0; i < count; i++)
+            m_ParticleSystem.Emit(particleProps);
+    }
+
 private:
     void beginDraw() { Hazel::Renderer2D::BeginScene(m_CameraController.GetCamera()); }
     void endDraw() const { Hazel::Renderer2D::EndScene(); }
@@ -51,4 +61,7 @@ private:
 
     float deltaTime = 0;
     float dt_smooth = 0;
+
+    ParticleProps m_Particle;
+    ParticleSystem m_ParticleSystem;
 };

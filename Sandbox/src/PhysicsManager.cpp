@@ -7,9 +7,45 @@
 
 // ----------------
 
+
+// Predefined fixtures type.
+#define FD_TYPE FixtureData
+
+// FIXTUREDEF(density, friction, restitution, name);
+#define FIXTUREDEF(d, f, r, n) const FD_TYPE (FixtureData::##n) = FD_TYPE(d, f, r, #n)
+
+// Predefined fixtures. (density, friction, restitution, name)
+FIXTUREDEF(0.00f, 0.20f, 0.00f, BOX2D);
+FIXTUREDEF(1.00f, 0.30f, 0.10f, DEFAULT);
+FIXTUREDEF(7.85f, 0.20f, 0.20f, METAL);
+FIXTUREDEF(2.40f, 0.50f, 0.10f, STONE);
+FIXTUREDEF(0.53f, 0.40f, 0.15f, WOOD);
+FIXTUREDEF(2.50f, 0.10f, 0.20f, GLASS);
+FIXTUREDEF(1.50f, 0.80f, 0.40f, RUBBER);
+FIXTUREDEF(0.92f, 0.01f, 0.10f, ICE);
+FIXTUREDEF(0.25f, 0.60f, 0.00f, PUMICE);
+FIXTUREDEF(0.10f, 0.60f, 0.05f, POLYSTYRENE);
+FIXTUREDEF(0.03f, 0.60f, 0.10f, FABRIC);
+FIXTUREDEF(0.018f, 0.90f, 0.05f, SPONGE);
+FIXTUREDEF(0.001f, 0.90f, 0.00f, AIR);
+FIXTUREDEF(0.0001f, 0.9f, 0.00f, HELIUM);
+
+FIXTUREDEF(1.00f, 0.10f, 0.45f, TEST);
+
+FIXTUREDEF(2.00f, 0.50f, 0.10f, LEVEL);
+
+const FixtureData FixtureData::SENSOR = FixtureData(true, {}, "SENSOR");
+
+// FIXTUREDEF(density, friction, restitution, name);
+//#define FIXTUREDEF(d, f, r, n) const FD_TYPE (FixtureData::##n) = \
+//	(const_cast<FD_TYPE&>(n) = FD_TYPE(), const_cast<FD_TYPE&>(n).userData = #n, \
+//	const_cast<FD_TYPE&>(n).density = d, const_cast<FD_TYPE&>(n).friction = f, const_cast<FD_TYPE&>(n).restitution = r, n)
+
+// --------------------------------
+
 // re-declare statics
 b2World* PhysicsManager::physicsWorld = nullptr;
-//std::list<b2Body*> PhysicsManager::physicsObjectList;s
+//std::list<b2Body*> PhysicsManager::physicsObjectList;
 
 // Constructor
 PhysicsManager::PhysicsManager()
@@ -48,7 +84,6 @@ void PhysicsManager::addPhysicsObject(b2Body* body)
 #define SPRINGINESS 8.0f // Specifies the mass-spring damping frequency in Hz. A low value will make the joint extremely soft and cause it to contract with very low force.
 #define DAMPING 0.5f //  This value can range from 0 (no damping) to 1 (critical damping). With critical damping, all oscillations should vanish.
 
-
 float SqrCircle(float f) // (f from -1 to 1)
 {
     if (f < 0) f = -f;
@@ -56,7 +91,6 @@ float SqrCircle(float f) // (f from -1 to 1)
     float rf = (1.0f - (pf * 0.5f + pf * f * 0.5f));
     return rf <= 0 ? 0 : rf >= 1 ? 1 : rf;
 }
-
 
 b2Body* PhysicsManager::createPhysicsObject(float x, float y, float size)
 {
@@ -267,42 +301,7 @@ int PhysicsManager::removePhysicBodies(int leftLimit, int rightLimit, int upLimi
 }
 */
 
-// Predefined fixtures type.
-#define FD_TYPE FixtureData
-
-// FIXTUREDEF(density, friction, restitution, name);
-#define FIXTUREDEF(d, f, r, n) const FD_TYPE (FixtureData::##n) = FD_TYPE(d, f, r, #n)
-
-// Predefined fixtures. (density, friction, restitution, name)
-FIXTUREDEF(0.00f, 0.20f, 0.00f, BOX2D);
-FIXTUREDEF(1.00f, 0.30f, 0.10f, DEFAULT);
-FIXTUREDEF(7.85f, 0.20f, 0.20f, METAL);
-FIXTUREDEF(2.40f, 0.50f, 0.10f, STONE);
-FIXTUREDEF(0.53f, 0.40f, 0.15f, WOOD);
-FIXTUREDEF(2.50f, 0.10f, 0.20f, GLASS);
-FIXTUREDEF(1.50f, 0.80f, 0.40f, RUBBER);
-FIXTUREDEF(0.92f, 0.01f, 0.10f, ICE);
-FIXTUREDEF(0.25f, 0.60f, 0.00f, PUMICE);
-FIXTUREDEF(0.10f, 0.60f, 0.05f, POLYSTYRENE);
-FIXTUREDEF(0.03f, 0.60f, 0.10f, FABRIC);
-FIXTUREDEF(0.018f, 0.90f, 0.05f, SPONGE);
-FIXTUREDEF(0.001f, 0.90f, 0.00f, AIR);
-FIXTUREDEF(0.0001f, 0.9f, 0.00f, HELIUM);
-
-FIXTUREDEF(1.50f, 0.40f, 0.45f, TEST);
-
-const FixtureData FixtureData::SENSOR = FixtureData(true, {}, "SENSOR");
-
-// FIXTUREDEF(density, friction, restitution, name);
-//#define FIXTUREDEF(d, f, r, n) const FD_TYPE (FixtureData::##n) = \
-//	(const_cast<FD_TYPE&>(n) = FD_TYPE(), const_cast<FD_TYPE&>(n).userData = #n, \
-//	const_cast<FD_TYPE&>(n).density = d, const_cast<FD_TYPE&>(n).friction = f, const_cast<FD_TYPE&>(n).restitution = r, n)
-
-
-
 // --------------------------------
-
-
 
 void PhysicsManager::BeginContact(b2Contact* contact)
 {
@@ -402,7 +401,6 @@ void PhysicsManager::BeginContact(b2Contact* contact)
     }
 }
 
-
 void PhysicsManager::EndContact(b2Contact* contact)
 {
     if (oneWayPlatforms2)
@@ -465,7 +463,6 @@ void PreSolvePlayerCollision(b2Contact * contact, b2Vec2 cnormal, GameObject * g
         contact->SetEnabled(false);
     }
 }
-
 
 void PhysicsManager::PreSolve(b2Contact* contact, const b2Manifold* oldManifold)
 {

@@ -8,12 +8,14 @@
 
 // re-declare statics
 ObjectManager* Sandbox2D::objectManager;
+Sandbox2D* Sandbox2D::sandbox2D;
 
 Sandbox2D::Sandbox2D()
-    : Layer("Sandbox2D"), m_CameraController(1280.0f / 720.0f), player(nullptr), lava(nullptr), debugDraw(nullptr)
+    : Layer("Sandbox2D"), m_CameraController(1280.0f / 720.0f), debugDraw(nullptr), player(nullptr), lava(nullptr)
 {
     m_CameraController.SetZoomLevel(3);
     m_CameraController.OnResize(1280, 720);
+    sandbox2D = this;
 }
 
 void Sandbox2D::OnAttach()
@@ -22,6 +24,15 @@ void Sandbox2D::OnAttach()
 
     OnResize(float(Hazel::Application::Get().GetWindow().GetWidth()), float(Hazel::Application::Get().GetWindow().GetHeight()));
     m_CameraController.OnResize(m_ScreenWidth, m_ScreenHeight);
+
+    // Init here
+    m_Particle.ColorBegin = { 254 / 255.0f, 212 / 255.0f, 123 / 255.0f, 1.0f };
+    m_Particle.ColorEnd = { 254 / 255.0f, 109 / 255.0f, 41 / 255.0f, 1.0f };
+    m_Particle.SizeBegin = 0.1f, m_Particle.SizeVariation = 0.2f, m_Particle.SizeEnd = 0.0f;
+    m_Particle.LifeTime = 1.0f;
+    m_Particle.Velocity = { 0.0f, 0.0f };
+    m_Particle.VelocityVariation = { 2.0f, 2.0f };
+    m_Particle.Position = { 0.0f, 0.0f };
 
 #if !DEBUG
     std::srand(std::time(nullptr));
@@ -173,6 +184,26 @@ void Sandbox2D::UpdateGame(Hazel::Timestep& ts)
         objectManager->createBox(mousePosf.x, mousePosf.y, 32.0f, 32.0f, { .5f, .5f, .5f, 1.f }, BodyType::dynamicBody, &FixtureData::TEST);
     }
 
+    if (Hazel::Input::IsMouseButtonPressed(Hazel::Mouse::ButtonRight))
+    {
+        auto mp = Hazel::Input::GetMousePosition();
+        auto x = mp.x;
+        auto y = mp.y;
+        auto width = m_ScreenWidth;
+        auto height = m_ScreenHeight;
+
+        glm::vec4 bounds = { -m_AspectRatio * zoom, m_AspectRatio * zoom, -zoom, zoom };
+        auto boundsWidth = bounds.y - bounds.x;
+        auto boundsHeight = bounds.w - bounds.z;
+        auto pos = m_CameraController.GetCamera().GetPosition();
+        x = (x / width) * boundsWidth - boundsWidth  * 0.5f;
+        y = boundsHeight * 0.5f - (y / height) * boundsHeight;
+        m_Particle.Position = { x + pos.x, y + pos.y };
+        for (int i = 0; i < 5; i++)
+            m_ParticleSystem.Emit(m_Particle);
+    }
+
+    m_ParticleSystem.OnUpdate(ts);
 }
 
 void Sandbox2D::DrawGame(Hazel::Timestep &ts)
@@ -275,6 +306,11 @@ void Sandbox2D::DrawGame(Hazel::Timestep &ts)
 #endif
 
         Hazel::Renderer2D::EndScene();
+
+
+        Hazel::Renderer2D::BeginScene(m_CameraController.GetCamera());
+        m_ParticleSystem.OnRender();
+        Hazel::Renderer2D::EndScene();
     }
 }
 
@@ -316,12 +352,14 @@ void Sandbox2D::OnImGuiRender()
 
     ImGui::Text("Player:");
     ImGui::Text("  playerMaxY: %d", (playerMaxY));
+    ImGui::Text("  speed: %.2f", (player->speed * 10));
     ImGui::Text("  grounded: %d", (player->grounded));
     ImGui::Text("  wallLeft: %d", (player->wallLeft));
     ImGui::Text("  wallRight: %d", (player->wallRight));
     ImGui::Text("  ceiling: %d", (player->ceiling));
     ImGui::Text("  inside: %d", (player->inside));
     ImGui::Text("  velocity: %.1f, %.1f", player->GetBody()->GetLinearVelocity().x, player->GetBody()->GetLinearVelocity().y);
+    ImGui::Text("  damping: %.1f", player->GetBody()->GetLinearDamping());
 
     glm::vec3 ctr = m_CameraController.GetCameraPosition();
     ImGui::Text("  cam.y: %.1f", (ctr.y));

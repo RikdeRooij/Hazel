@@ -2,6 +2,9 @@
 #include "Hazel/Renderer/Renderer2D.h"
 #include "Hazel/Core/Input.h"
 #include "DebugDraw.h"
+#include "Sandbox2D.h"
+
+//#define TEST 1
 
 #define PM_SCALE 1.0f
 
@@ -20,7 +23,7 @@
 #define MOVE_FALLOFF_POWER 1.0f // scales reduction power on movement at high speed
 
 
-#define MOVE_AIR 0.5f // amount of movement when not grounded
+#define MOVE_AIR 0.25f // amount of movement when not grounded
 #define MOVE_AIR_MOMENTUM 3.0f // momentum (speed) needed to move when fully airborne (reducing move power when less)
 #define MOVE_AIR_COLLDING 0.5f // amount of movement when not grounded but still touching a wall or ceiling
 
@@ -41,7 +44,7 @@ Player::Player(float x, float y, float size, float scale, PhysicsManager* physic
     b2PolygonShape shape;
     shape.SetAsBox(size*0.5f*UNRATIO, size*0.5f*UNRATIO);
 
-    b2FixtureDef fixtureDef = FixtureData(1.5f, 0.5f, 0.2f, "Player");
+    b2FixtureDef fixtureDef = FixtureData(1.0f, 0.2f, 0.45f, "Player");
     fixtureDef.shape = &shape;
 
     b2Body* physBody = physicsMgr->getPhysicsWorld()->CreateBody(&bodyDef);
@@ -73,6 +76,18 @@ Player::Player(float x, float y, float size, float scale, PhysicsManager* physic
     hastex = true;
     origin = { .5f, .5f };
     clr = { 1, 1, 1, 1 };
+
+
+    // Init here
+    m_Particle.ColorBegin = { 0.0f, 0.9f, 0.0f, 1.0f };
+    m_Particle.ColorEnd = { 0.0f, 0.8f, 0.0f, 0.1f };
+    m_Particle.Texture = Hazel::Texture2D::Create("assets/particle.png");
+    m_Particle.HasTexture = true;
+    m_Particle.SizeBegin = 0.25f, m_Particle.SizeVariation = 0.2f, m_Particle.SizeEnd = 0.0f;
+    m_Particle.LifeTime = 0.60f;
+    m_Particle.Velocity = { 0.1f, 0.1f };
+    m_Particle.VelocityVariation = { 2.5f, 2.5f };
+    m_Particle.Position = { 0.0f, 0.0f };
 }
 
 Player::~Player()
@@ -93,7 +108,7 @@ void Player::update(float dt)
 
     //b2Vec2 pos = getBody()->GetPosition();
     b2Vec2 vel = GetBody()->GetLinearVelocity();
-    float speed = vel.Length();
+    speed = vel.Length();
     float mass = GetBody()->GetMass();
 
     grounded = false;
@@ -195,16 +210,20 @@ void Player::update(float dt)
     float damping = !inside && grounded ? MOVE_DAMPING : 0;
     GetBody()->SetLinearDamping(damping);
 
+
     float move_pwr_scale = grounded ? 1.0f :
         fmax(airborne ? 0 : MOVE_AIR_COLLDING,
-             fmin(pow3(speed / MOVE_AIR_MOMENTUM) * MOVE_AIR, MOVE_AIR));
+             fmin(pow3(fmin(1.0f, speed / MOVE_AIR_MOMENTUM)) * MOVE_AIR, MOVE_AIR));
 
     float move_falloff = 1.0f + fmax(speed - MOVE_FALLOFF, 0.0f) * MOVE_FALLOFF_POWER;
+    //move_falloff = 1.0f;
 
     float power = (mass / move_falloff) * move_pwr_scale;
 
-    bool allowJump = !inside && vel.y < 3.1f &&
-        (grounded || !ceiling || wallLeft || wallRight);
+    // _JUMP vel.y:  0.0 | 3.4 | 4.2
+    bool allowJump = !inside &&  vel.y < 4.5f &&
+        (grounded || wallLeft || wallRight); // || !ceiling)
+
     float jumpDeltaTime = abs(time - lastJumpTime);
     if (allowJump && (jumpDeltaTime > MOVE_JUMP_TIME))
     {
@@ -212,12 +231,12 @@ void Player::update(float dt)
             // || Hazel::Input::IsKeyPressed(Hazel::Key::W)
             )
         {
+            //if(grounded) DBG_OUTPUT("_JUMP %.1f", vel.y);
+
             float velup = clamp01(vel.y); // 1 when going up
             float veldn = clamp01(-vel.y); // 1 when going down
 
-
             float opposite = (1.0f - veldn * 0.8f); // smaller when going down
-
 
             if (grounded && vel.y < MOVE_JUMP_UP * 0.9f)
             {
@@ -255,8 +274,14 @@ void Player::update(float dt)
         // || Hazel::Input::IsKeyPressed(Hazel::Key::A)
         )
     {
+#if TEST
         float limit = clamp01(MOVE_SIDE_LIMIT + vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME);
         moveX(-power * limit * MOVE_SIDE);
+#else
+        float opposite = !grounded ? 1.0f : 0.05f + pow2(clamp01(-(vel.x / MOVE_SIDE_LIMIT)));
+        float limit = clamp01(MOVE_SIDE + vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME) * opposite;
+        moveX(-fmin(power * limit * MOVE_SIDE, MOVE_SIDE_LIMIT));
+#endif
         this->width = std::abs(width);
     }
 
@@ -264,8 +289,14 @@ void Player::update(float dt)
         // || Hazel::Input::IsKeyPressed(Hazel::Key::D)
         )
     {
+#if TEST
         float limit = clamp01(MOVE_SIDE_LIMIT - vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME);
         moveX(power * limit * MOVE_SIDE);
+#else
+        float opposite = !grounded ? 1.0f : 0.05f + pow2(clamp01((vel.x / MOVE_SIDE_LIMIT)));
+        float limit = clamp01(MOVE_SIDE - vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME) * opposite;
+        moveX(fmin(power * limit * MOVE_SIDE, MOVE_SIDE_LIMIT));
+#endif
         this->width = -std::abs(width);
     }
 
@@ -291,11 +322,14 @@ void Player::moveX(float power) const
     if (dead)
         return;
 
+#if TEST
     b2Vec2 impulse = b2Vec2(power, 0);
-
     b2Vec2 impulsePoint = GetBody()->GetPosition();
-
     GetBody()->ApplyLinearImpulse(impulse, impulsePoint, true);
+#else
+    //DBG_OUTPUT("moveX:: %.3f", (power));
+    GetBody()->ApplyForceToCenter({ power * 100, 0 }, true);
+#endif
 }
 
 void Player::Jump(float x, float power) const
@@ -323,7 +357,9 @@ void Player::MoveDown()
 }
 
 void Player::Explode()
-{}
+{
+    Sandbox2D::sandbox2D->EmitParticles(posx, posy, 100, m_Particle);
+}
 
 void Player::Die()
 {

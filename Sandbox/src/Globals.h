@@ -23,6 +23,7 @@
 ////#include <iterator>  // Container iterators
 
 #include "glm/vec2.hpp"
+#include <random>
 
 
 #pragma endregion [INCLUDES]
@@ -123,6 +124,24 @@ inline float Random(float _Min, float _Max) { return RANDOM * (_Max - _Min) + _M
 inline int RandomInt(int _Max) { return (int)(IRANDOM * _Max); }
 // pseudo-random number [a, <b]
 inline int RandomInt(int _Min, int _Max) { return (int)(IRANDOM * (_Max - _Min) + _Min); }
+
+class Random
+{
+public:
+    static void Init()
+    {
+        s_RandomEngine.seed(std::random_device()());
+    }
+
+    static float Float()
+    {
+        return (float)s_Distribution(s_RandomEngine) / (float)std::numeric_limits<uint32_t>::max();
+    }
+
+private:
+    static std::mt19937 s_RandomEngine;
+    static std::uniform_int_distribution<std::mt19937::result_type> s_Distribution;
+};
 
 // --------------------------------
 

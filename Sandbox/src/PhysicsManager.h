@@ -3,7 +3,7 @@
 #include <box2d/box2d.h>
 #include <list>
 
-#define P_GRAVITY 9.8f
+#define P_GRAVITY -9.81f
 
 #define P_TIMESTEP (1.0f / 60.0f)
 
@@ -151,5 +151,6 @@ typedef struct FixtureData
     static const FixtureData SENSOR;
 
     static const FixtureData TEST;
+    static const FixtureData LEVEL;
 
 } FixtureData;

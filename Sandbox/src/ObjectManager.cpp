@@ -297,7 +297,7 @@ GameObject* ObjectManager::addSawblade(float x, float y)
     float d = -sign(x);
     float r = (sawSize.x + sawSize.y) * 0.5f;
 
-    b2Body* physBody = physicsMgr->addCircle(x * LVL_SCALE, y * LVL_SCALE, r * 0.40f * LVL_SCALE, kinematicBody, LVL_FIXTURE);
+    b2Body* physBody = physicsMgr->addCircle(x * LVL_SCALE, y * LVL_SCALE, r * 0.40f * LVL_SCALE, kinematicBody, &FixtureData::METAL);
 
     b2Body* sensorBody = physicsMgr->addCircle(x * LVL_SCALE, y * LVL_SCALE, r * 0.46f * LVL_SCALE, staticBody, &FixtureData::SENSOR);
 
