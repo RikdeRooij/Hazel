@@ -12,13 +12,17 @@ public:
     ~Player();
 
 
-    void draw(int layer) override;
+    void Draw(int layer) override;
 
-    void update(float dt) override;
+    void Update(float dt) override;
 
-    void moveX(float power) const;
+    void UpdateCollisions(b2Vec2& vel);
+    void UpdateMove(b2Vec2& vel);
+
+
+    void MoveX(float power) const;
     void Jump(float x, float power) const;
-    void MoveDown();
+    void Move(float dx, float dy) const;
 
 
     void Explode();

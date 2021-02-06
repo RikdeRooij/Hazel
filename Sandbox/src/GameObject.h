@@ -53,24 +53,27 @@ public:
     virtual ~GameObject();
 
     b2Body* GameObject::GetBody() const { return m_body; }
-    glm::vec2 GameObject::getPosition() const;
-    glm::vec2 getPosition(glm::vec2 origin) const;
+    glm::vec2 GameObject::GetPosition() const;
+    glm::vec2 GetPosition(glm::vec2 origin) const;
+
+    float GameObject::GetHeight() const { return this->height; }
+    float GameObject::GetWidth() const { return this->width; }
 
     virtual void Die();
 
-    glm::vec4 GameObject::getColor() const { return clr; }
-    void GameObject::setColor(glm::vec4 color) { this->clr = color; }
-    void GameObject::setDrawLayer(int layer) { this->draw_layer = layer; }
-    void GameObject::setTilingFactor(const glm::vec2& tilingFactor) { this->tex_tiling = tilingFactor; }
-    void GameObject::setTilingOffset(const glm::vec2& offset) { this->tex_offset = offset; }
-    glm::vec2 GameObject::getTilingFactor() const { return this->tex_tiling; }
-    glm::vec2 GameObject::getTilingOffset() const { return this->tex_offset; }
-    float GameObject::getHeight() const { return this->height; }
-    float GameObject::getWidth() const { return this->width; }
+    glm::vec4 GameObject::GetColor() const { return clr; }
+    void GameObject::SetColor(glm::vec4 color) { this->clr = color; }
+
+    void GameObject::SetDrawLayer(int layer) { this->draw_layer = layer; }
+
+    void GameObject::SetTilingFactor(const glm::vec2& tilingFactor) { this->tex_tiling = tilingFactor; }
+    void GameObject::SetTilingOffset(const glm::vec2& offset) { this->tex_offset = offset; }
+    glm::vec2 GameObject::GetTilingFactor() const { return this->tex_tiling; }
+    glm::vec2 GameObject::GetTilingOffset() const { return this->tex_offset; }
 
 protected:
     // setters
-    void setBody(b2Body* bd)
+    void SetBody(b2Body* bd)
     {
         m_body = bd;
         b2BodyUserData data;
@@ -83,14 +86,16 @@ protected:
 
 public:
 
-    virtual void update(float time);
+    virtual void Update(float time);
 
-    virtual void draw(int layer);
+    virtual void Draw(int layer);
 
     Objects::Type type = Objects::Unknown;
 
     bool dontDestroy;
     bool dontDraw;;
+
+    bool debugMode = false;
 
 protected:
     static unsigned long instanceCount;

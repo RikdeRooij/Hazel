@@ -81,7 +81,7 @@ GameObject::~GameObject()
 //void GameObject::setBody(b2Body* bd) { m_body = bd; m_body->SetUserData(this); }
 
 
-glm::vec2 GameObject::getPosition() const
+glm::vec2 GameObject::GetPosition() const
 {
     //if(m_body) return glm::vec2(m_body->GetPosition().x * RATIO, m_body->GetPosition().y * RATIO);
     //return glm::vec2(posx, posy);
@@ -90,7 +90,7 @@ glm::vec2 GameObject::getPosition() const
     return glm::vec2(px, py);
 }
 
-glm::vec2 GameObject::getPosition(glm::vec2 origin) const
+glm::vec2 GameObject::GetPosition(glm::vec2 origin) const
 {
     //if(m_body) return glm::vec2(m_body->GetPosition().x * RATIO, m_body->GetPosition().y * RATIO);
     //return glm::vec2(posx, posy);
@@ -103,7 +103,7 @@ void GameObject::Die()
 {}
 
 
-void GameObject::update(float time)
+void GameObject::Update(float time)
 {
     if (m_body && (m_body->GetType() == b2_dynamicBody || m_body->GetType() == b2_kinematicBody))
     {
@@ -115,7 +115,7 @@ void GameObject::update(float time)
 
 
 // Draw the object on the given render target
-void GameObject::draw(int layer)
+void GameObject::Draw(int layer)
 {
     if (dontDraw)
         return;

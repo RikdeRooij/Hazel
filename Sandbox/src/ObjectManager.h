@@ -53,43 +53,43 @@ public:
     ObjectManager();
     ~ObjectManager();
 
-    PhysicsManager* getPhysicsMgr();
-    auto getObjectCount() const { return objectList.size(); }
-    auto getObjectList() const { return objectList; }
+    PhysicsManager* GetPhysicsMgr();
+    auto GetObjectCount() const { return objectList.size(); }
+    auto GetObjectList() const { return objectList; }
 
-    Player* createPlayer(float x, float y, float size);
+    Player* CreatePlayer(float x, float y, float size);
 
-    GameObject* createLava(float x, float y, float w, float h);
+    GameObject* CreateLava(float x, float y, float w, float h);
 
-    static GameObject* createBox(float x, float y, float w, float h, glm::vec4 color,
+    static GameObject* CreateBox(float x, float y, float w, float h, glm::vec4 color,
                                  const BodyType bodyType, const FixtureData* fixtureData = &FixtureData::DEFAULT);
 
-    GameObject* addBackground(float &y);
-    GameObject* addLeftWall(float offX, float &y);
-    GameObject* addRightWall(float offX, float &y);
+    GameObject* AddBackground(float &y);
+    GameObject* AddLeftWall(float offX, float &y);
+    GameObject* AddRightWall(float offX, float &y);
 
-    GameObject* addPlatform(float x, float y, glm::vec2 org, float angle, Textures::Type type);
-    void addPlatforms(float wallOffX);
+    GameObject* AddPlatform(float x, float y, glm::vec2 org, float angle, Textures::Type type);
+    void AddPlatforms(float wallOffX);
 
-    GameObject* addSawblade(float x, float y);
-    GameObject* addSpike(float x, float y, float angle = 0);
-    void addSpikes(float x, float y, float angle = 0);
+    GameObject* AddSawblade(float x, float y);
+    GameObject* AddSpike(float x, float y, float angle = 0);
+    void AddSpikes(float x, float y, float angle = 0);
 
-    void generateLevel(float y);
-    void updateLevel(float y);
+    void GenerateLevel(float y);
+    void UpdateLevel(float y);
 
-    int removeObjectsBelow(float y);
+    int RemoveObjectsBelow(float y);
     void UpdateStep(float dt);
-    void updateObjects(float dt);
+    void UpdateObjects(float dt);
 
-    void drawObjects(int layer);
+    void DrawObjects(int layer);
 
 protected:
 
-    GameObject* createBoxPhysicsObject(glm::vec2 pos, glm::vec2 size, glm::vec2 origin, float angle, TextureRef tex,
+    GameObject* CreateBoxPhysicsObject(glm::vec2 pos, glm::vec2 size, glm::vec2 origin, float angle, TextureRef tex,
                                        const BodyType bodyType = staticBody, const FixtureData * fixtureData = LVL_FIXTURE)
     {
-        b2Body* physBody = physicsMgr->addBox((pos.x) * LVL_SCALE, (pos.y) * LVL_SCALE,
+        b2Body* physBody = physicsMgr->AddBox((pos.x) * LVL_SCALE, (pos.y) * LVL_SCALE,
             (size.x) * LVL_SCALE, (size.y) * LVL_SCALE,
                                               angle, bodyType, fixtureData,
                                               origin.x, origin.y);

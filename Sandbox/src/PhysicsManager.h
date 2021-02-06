@@ -46,19 +46,19 @@ public:
     PhysicsManager();
     virtual ~PhysicsManager();
 
-    b2World* getPhysicsWorld() const { return physicsWorld; }
+    b2World* GetPhysicsWorld() const { return physicsWorld; }
     //std::list<b2Body*> getphysicsObjectList() const { return physicsObjectList; }
-    auto getObjectCount() const { return physicsObjectList.size(); }
+    auto GetObjectCount() const { return physicsObjectList.size(); }
 
     // Add physics object
-    void addPhysicsObject(b2Body* body);
-    b2Body* createPhysicsObject(float x, float y, float size);
-    b2Body* addBox(float x, float y, float w, float h, float angle, const BodyType bodyType, const FixtureData* fixtureData, float ctrx = 0.5f, float ctry = 0.5f);
-    b2Body* addCircle(float x, float y, float radius, const BodyType bodyType, const FixtureData* fixtureData);
+    void AddPhysicsObject(b2Body* body);
+    b2Body* CreatePhysicsObject(float x, float y, float size);
+    b2Body* AddBox(float x, float y, float w, float h, float angle, const BodyType bodyType, const FixtureData* fixtureData, float ctrx = 0.5f, float ctry = 0.5f);
+    b2Body* AddCircle(float x, float y, float radius, const BodyType bodyType, const FixtureData* fixtureData);
 
-    unsigned int removeBody(b2Body* body);
+    unsigned int RemoveBody(b2Body* body);
 
-    void update(float time) const;
+    void Update(float time) const;
     //int removePhysicBodies(int leftLimit, int rightLimit, int upLimit, int downLimit);
 
     // Physics calls

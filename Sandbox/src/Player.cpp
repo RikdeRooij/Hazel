@@ -47,12 +47,12 @@ Player::Player(float x, float y, float size, float scale, PhysicsManager* physic
     b2FixtureDef fixtureDef = FixtureData(1.0f, 0.2f, 0.45f, "Player");
     fixtureDef.shape = &shape;
 
-    b2Body* physBody = physicsMgr->getPhysicsWorld()->CreateBody(&bodyDef);
+    b2Body* physBody = physicsMgr->GetPhysicsWorld()->CreateBody(&bodyDef);
     b2BodyUserData data;
     data.pointer = reinterpret_cast<uintptr_t>(this);
     physBody->SetUserData(data);
     physBody->CreateFixture(&fixtureDef);
-    physicsMgr->addPhysicsObject(physBody);
+    physicsMgr->AddPhysicsObject(physBody);
 
     physBody->SetFixedRotation(true);
     //physBody->SetLinearDamping(MOVE_DAMPING);
@@ -95,103 +95,25 @@ Player::~Player()
 
 }
 
-void Player::draw(int layer)
+void Player::Draw(int layer)
 {
     if (dontDraw)
         return;
-    GameObject::draw(layer);
+    GameObject::Draw(layer);
 }
 
-void Player::update(float dt)
+void Player::Update(float dt)
 {
     time += dt * 1000;
 
+
     //b2Vec2 pos = getBody()->GetPosition();
     b2Vec2 vel = GetBody()->GetLinearVelocity();
+
+    UpdateCollisions(vel);
+
+    //getBody()->SetLinearVelocity(vel);
     speed = vel.Length();
-    float mass = GetBody()->GetMass();
-
-    grounded = false;
-    wallLeft = false;
-    wallRight = false;
-    ceiling = false;
-    inside = false;
-
-#if DEBUG
-    contacts.clear();
-#endif
-
-    for (b2ContactEdge* ce = GetBody()->GetContactList(); ce; ce = ce->next)
-    {
-        b2Contact* c = ce->contact;
-
-        //DBG_WRITE("%s  ##  %s", ((char*)c->GetFixtureA()->GetUserData()), ((char*)c->GetFixtureA()->GetUserData()));
-        //c->GetFixtureA()
-        //if (c->GetFixtureA() == (*enemyBody)[i]->GetFixtureList())
-
-        b2Manifold* manifold = c->GetManifold();
-        if (manifold->pointCount < 0)
-            continue;
-
-        b2WorldManifold worldManifold;
-        c->GetWorldManifold(&worldManifold);
-
-
-        glm::vec2 avgPos(0, 0);
-        glm::vec2 ctrDirVec(0, 0);
-
-        if (manifold->pointCount > 0)
-        {
-            for (int i = 0; i < manifold->pointCount; i++)
-            {
-                glm::vec2 sfPos = { worldManifold.points[i].x * RATIO, worldManifold.points[i].y * RATIO };
-                avgPos += sfPos;
-            }
-            avgPos = glm::vec2(avgPos.x / (float)manifold->pointCount, avgPos.y / (float)manifold->pointCount);
-            ctrDirVec = avgPos - getPosition();
-        }
-        else
-        {
-            avgPos = getPosition();
-            ctrDirVec = glm::vec2(0, 0);
-        }
-
-        b2Vec2 wmNormal = worldManifold.normal;
-        auto normal = b2Vec2(abs(wmNormal.x) * ctrDirVec.x,
-                             abs(wmNormal.y) * ctrDirVec.y);
-        normal.Normalize();
-
-        bool isGround = (normal.y < 0 && abs(normal.x) < GROUND_NORMAL);
-        bool isLeft = normal.x <= -GROUND_NORMAL;
-        bool isRight = normal.x >= GROUND_NORMAL;
-        bool isUp = (normal.y > 0 && abs(normal.x) < GROUND_NORMAL);
-
-        bool isInside = manifold->pointCount > 0 && glm::length(ctrDirVec) < 0.1f;
-
-        if (isInside)
-            inside = true;
-
-        {
-            if (isGround && !isInside)
-                grounded = true;
-            else
-            {
-                if (isLeft)
-                    wallLeft = true;
-                if (isRight)
-                    wallRight = true;
-                if (isUp && !isInside)
-                    ceiling = true;
-            }
-        }
-
-#if DEBUG
-        ContactData cd = ContactData(avgPos, { normal.x, normal.y }, isGround, isUp);
-        contacts.push_back(cd);
-#endif
-
-        //vel = clipVector(vel, normal, 0.5f);
-    }
 
 
     if (Hazel::Input::BeginKeyPress(Hazel::Key::X))
@@ -200,16 +122,55 @@ void Player::update(float dt)
     if (Hazel::Input::BeginKeyPress(Hazel::Key::K))
         Die();
 
-    //getBody()->SetLinearVelocity(vel);
-    //speed = vel.Length();
-
-
-    bool airborne = inside ||
-        (!grounded && !wallLeft && !wallRight && !ceiling);
 
     float damping = !inside && grounded ? MOVE_DAMPING : 0;
     GetBody()->SetLinearDamping(damping);
 
+
+
+    if (Hazel::Input::BeginKeyPress(Hazel::Key::Slash))
+    {
+        debugMode = !debugMode;
+        //GetBody()->SetType(debugMode ? b2_kinematicBody : b2_dynamicBody);
+        GetBody()->SetGravityScale(debugMode ? 0 : 1);
+    }
+
+    if (debugMode)
+    {
+        b2Vec2 impulse = b2Vec2(0, 0);
+
+        if (Hazel::Input::IsKeyPressed(Hazel::Key::Left))
+            impulse.x += -1;
+        if (Hazel::Input::IsKeyPressed(Hazel::Key::Right))
+            impulse.x += 1;
+        if (Hazel::Input::IsKeyPressed(Hazel::Key::Up))
+            impulse.y += 1;
+        if (Hazel::Input::IsKeyPressed(Hazel::Key::Down))
+            impulse.y += -1;
+
+        GetBody()->SetLinearVelocity(impulse);
+    }
+    else
+    {
+        UpdateMove(vel);
+
+        if (dead && GetBody())
+        {
+            this->height = -std::abs(height);
+            GetBody()->SetLinearVelocity(b2Vec2(0, 0));
+            GetBody()->SetAwake(false);
+        }
+    }
+
+    GameObject::Update(dt);
+}
+
+void Player::UpdateMove(b2Vec2& vel)
+{
+    float mass = GetBody()->GetMass();
+
+    bool airborne = inside ||
+        (!grounded && !wallLeft && !wallRight && !ceiling);
 
     float move_pwr_scale = grounded ? 1.0f :
         fmax(airborne ? 0 : MOVE_AIR_COLLDING,
@@ -280,7 +241,7 @@ void Player::update(float dt)
 #else
         float opposite = !grounded ? 1.0f : 0.05f + pow2(clamp01(-(vel.x / MOVE_SIDE_LIMIT)));
         float limit = clamp01(MOVE_SIDE + vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME) * opposite;
-        moveX(-fmin(power * limit * MOVE_SIDE, MOVE_SIDE_LIMIT));
+        MoveX(-fmin(power * limit * MOVE_SIDE, MOVE_SIDE_LIMIT));
 #endif
         this->width = std::abs(width);
     }
@@ -295,7 +256,7 @@ void Player::update(float dt)
 #else
         float opposite = !grounded ? 1.0f : 0.05f + pow2(clamp01((vel.x / MOVE_SIDE_LIMIT)));
         float limit = clamp01(MOVE_SIDE - vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME) * opposite;
-        moveX(fmin(power * limit * MOVE_SIDE, MOVE_SIDE_LIMIT));
+        MoveX(fmin(power * limit * MOVE_SIDE, MOVE_SIDE_LIMIT));
 #endif
         this->width = -std::abs(width);
     }
@@ -304,20 +265,98 @@ void Player::update(float dt)
         // || Hazel::Input::IsKeyPressed(Hazel::Key::S)
         )
     {
-        MoveDown();
+        Move( 0.f, -1.f );
     }
-
-    if (dead && GetBody())
-    {
-        this->height = -std::abs(height);
-        GetBody()->SetLinearVelocity(b2Vec2(0, 0));
-        GetBody()->SetAwake(false);
-    }
-
-    GameObject::update(dt);
 }
 
-void Player::moveX(float power) const
+void Player::UpdateCollisions(b2Vec2& vel)
+{
+    grounded = false;
+    wallLeft = false;
+    wallRight = false;
+    ceiling = false;
+    inside = false;
+
+#if DEBUG
+    contacts.clear();
+#endif
+
+    for (b2ContactEdge* ce = GetBody()->GetContactList(); ce; ce = ce->next)
+    {
+        b2Contact* c = ce->contact;
+
+        //DBG_WRITE("%s  ##  %s", ((char*)c->GetFixtureA()->GetUserData()), ((char*)c->GetFixtureA()->GetUserData()));
+        //c->GetFixtureA()
+        //if (c->GetFixtureA() == (*enemyBody)[i]->GetFixtureList())
+
+        b2Manifold* manifold = c->GetManifold();
+        if (manifold->pointCount < 0)
+            continue;
+
+        b2WorldManifold worldManifold;
+        c->GetWorldManifold(&worldManifold);
+
+
+        glm::vec2 avgPos(0, 0);
+        glm::vec2 ctrDirVec(0, 0);
+
+        if (manifold->pointCount > 0)
+        {
+            for (int i = 0; i < manifold->pointCount; i++)
+            {
+                glm::vec2 sfPos = { worldManifold.points[i].x * RATIO, worldManifold.points[i].y * RATIO };
+                avgPos += sfPos;
+            }
+            avgPos = glm::vec2(avgPos.x / (float)manifold->pointCount, avgPos.y / (float)manifold->pointCount);
+            ctrDirVec = avgPos - GetPosition();
+        }
+        else
+        {
+            avgPos = GetPosition();
+            ctrDirVec = glm::vec2(0, 0);
+        }
+
+        b2Vec2 wmNormal = worldManifold.normal;
+        auto normal = b2Vec2(abs(wmNormal.x) * ctrDirVec.x,
+                             abs(wmNormal.y) * ctrDirVec.y);
+        normal.Normalize();
+
+        bool isGround = (normal.y < 0 && abs(normal.x) < GROUND_NORMAL);
+        bool isLeft = normal.x <= -GROUND_NORMAL;
+        bool isRight = normal.x >= GROUND_NORMAL;
+        bool isUp = (normal.y > 0 && abs(normal.x) < GROUND_NORMAL);
+
+        bool isInside = manifold->pointCount > 0 &&
+            (glm::length(ctrDirVec) < 0.1f || 
+            (abs(ctrDirVec.x) < 0.2f && abs(ctrDirVec.y) < 0.19f));
+
+        if (isInside)
+            inside = true;
+
+        {
+            if (isGround && !isInside)
+                grounded = true;
+            else
+            {
+                if (isLeft)
+                    wallLeft = true;
+                if (isRight)
+                    wallRight = true;
+                if (isUp && !isInside)
+                    ceiling = true;
+            }
+        }
+
+#if DEBUG
+        ContactData cd = ContactData(avgPos, { normal.x, normal.y }, isGround, isUp);
+        contacts.push_back(cd);
+#endif
+
+        //vel = clipVector(vel, normal, 0.5f);
+    }
+}
+
+void Player::MoveX(float power) const
 {
     if (dead)
         return;
@@ -343,15 +382,15 @@ void Player::Jump(float x, float power) const
     GetBody()->SetLinearVelocity(impulse);
 }
 
-void Player::MoveDown()
+void Player::Move(float dx, float dy) const
 {
     if (dead)
         return;
 
     b2Vec2 vel = GetBody()->GetLinearVelocity();
-    float power = 1.0f / fmax(vel.Length(), 1.0f);
+    float power = GetBody()->GetMass() * (1.0f / fmax(vel.Length(), 1.0f));
 
-    b2Vec2 impulse = b2Vec2(0, -GetBody()->GetMass() * MOVE_JUMP_UP * power * 0.1f);
+    b2Vec2 impulse = b2Vec2(dx * power, dy * power);
     b2Vec2 impulsePoint = GetBody()->GetPosition();
     GetBody()->ApplyLinearImpulse(impulse, impulsePoint, true);
 }
@@ -368,7 +407,7 @@ void Player::Die()
 
     GetBody()->SetAwake(false);
 
-    setColor({ 1,1,1,0 });
+    SetColor({ 1,1,1,0 });
 
     Explode();
 

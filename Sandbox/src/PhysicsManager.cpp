@@ -72,7 +72,7 @@ PhysicsManager::~PhysicsManager()
     physicsWorld = nullptr;
 }
 
-void PhysicsManager::addPhysicsObject(b2Body* body)
+void PhysicsManager::AddPhysicsObject(b2Body* body)
 {
     this->physicsObjectList.push_back(body);
 }
@@ -92,7 +92,7 @@ float SqrCircle(float f) // (f from -1 to 1)
     return rf <= 0 ? 0 : rf >= 1 ? 1 : rf;
 }
 
-b2Body* PhysicsManager::createPhysicsObject(float x, float y, float size)
+b2Body* PhysicsManager::CreatePhysicsObject(float x, float y, float size)
 {
     b2Vec2 center = b2Vec2(x * UNRATIO, y * UNRATIO);
 
@@ -199,7 +199,7 @@ b2Body* PhysicsManager::createPhysicsObject(float x, float y, float size)
     return innerCircleBody;
 }
 
-b2Body* PhysicsManager::addBox(float x, float y, float w, float h, float angle, const BodyType bodyType, const FixtureData* fixtureData, float ctrx, float ctry)
+b2Body* PhysicsManager::AddBox(float x, float y, float w, float h, float angle, const BodyType bodyType, const FixtureData* fixtureData, float ctrx, float ctry)
 {
     b2BodyDef bodyDef;
     bodyDef.type = static_cast<b2BodyType>(bodyType);
@@ -223,7 +223,7 @@ b2Body* PhysicsManager::addBox(float x, float y, float w, float h, float angle, 
     return bodyBox;
 }
 
-b2Body* PhysicsManager::addCircle(float x, float y, float radius, const BodyType bodyType, const FixtureData* fixtureData)
+b2Body* PhysicsManager::AddCircle(float x, float y, float radius, const BodyType bodyType, const FixtureData* fixtureData)
 {
     b2BodyDef bodyDef;
     bodyDef.type = static_cast<b2BodyType>(bodyType);
@@ -243,7 +243,7 @@ b2Body* PhysicsManager::addCircle(float x, float y, float radius, const BodyType
 }
 
 
-unsigned int PhysicsManager::removeBody(b2Body* body)
+unsigned int PhysicsManager::RemoveBody(b2Body* body)
 {
     if (!body)
         return 0;
@@ -268,7 +268,7 @@ unsigned int PhysicsManager::removeBody(b2Body* body)
 }
 
 
-void PhysicsManager::update(float time) const
+void PhysicsManager::Update(float time) const
 {
     // Update the world
     //this->physicsWorld->Step(P_TIMESTEP, velocityIterations, positionIterations);
@@ -313,6 +313,11 @@ void PhysicsManager::BeginContact(b2Contact* contact)
 
     if (!goA || !goB)
         return;
+
+    if (goA->debugMode || goB->debugMode)
+    {
+        contact->SetEnabled(false);
+    }
 
     if (fixtureA->IsSensor() || fixtureB->IsSensor())
     {
