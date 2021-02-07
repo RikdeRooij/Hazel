@@ -10,9 +10,7 @@ std::uniform_int_distribution<std::mt19937::result_type> Random::s_Distribution;
 
 // --------------------------------
 
-
 #pragma region [STRINGS]
-
 
 const char* va(const char* pFormat, ...)
 {
@@ -58,12 +56,9 @@ std::string format(const char *pFormat, ...)
 
 #pragma endregion [STRINGS]
 
-
 ///////////////////////////////////////////////////////////////////
 
-
 #pragma region [DEBUG]
-
 
 // output string
 void DbgOut(const char *str)

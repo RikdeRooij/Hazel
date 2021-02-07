@@ -74,8 +74,7 @@ namespace Jelly
         virtual void PostSolve(b2Contact* contact, const b2ContactImpulse* impulse) override;
 
         // physics data
-        bool oneWayPlatforms = true;;
-        bool oneWayPlatforms2 = false;
+        int oneWayPlatforms = 1; // 0,1,2
         int m_numFootContacts = 0;
 
 

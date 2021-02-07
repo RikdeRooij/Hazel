@@ -13,7 +13,6 @@ namespace Jelly
         glm::vec2 Velocity, VelocityVariation;
         glm::vec4 ColorBegin, ColorEnd;
         Jelly::TextureRef Texture;
-        bool HasTexture = false;
         float SizeBegin, SizeEnd, SizeVariation;
         float LifeTime = 1.0f;
     };
@@ -54,7 +53,6 @@ namespace Jelly
             glm::vec2 Velocity;
             glm::vec4 ColorBegin, ColorEnd;
             Jelly::TextureRef Texture;
-            bool HasTexture = false;
             float Rotation = 0.0f;
             float SizeBegin, SizeEnd;
 

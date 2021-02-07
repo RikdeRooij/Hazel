@@ -188,6 +188,9 @@ public:
     /// @return the linear velocity of the center of mass.
     const b2Vec2& GetLinearVelocity() const;
 
+    void SetForce(const b2Vec2& v);
+    const b2Vec2& GetForce() const;
+
     /// Set the angular velocity.
     /// @param omega the new angular velocity in radians/second.
     void SetAngularVelocity(float omega);
@@ -519,6 +522,26 @@ inline void b2Body::SetLinearVelocity(const b2Vec2& v)
 inline const b2Vec2& b2Body::GetLinearVelocity() const
 {
     return m_linearVelocity;
+}
+
+inline void b2Body::SetForce(const b2Vec2& v)
+{
+    if (m_type == b2_staticBody)
+    {
+        return;
+    }
+
+    if (b2Dot(v, v) > 0.0f)
+    {
+        SetAwake(true);
+    }
+
+    m_force = v;
+}
+
+inline const b2Vec2& b2Body::GetForce() const
+{
+    return m_force;
 }
 
 inline void b2Body::SetAngularVelocity(float w)

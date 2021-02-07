@@ -4,6 +4,7 @@
 #include "glm/vec2.hpp"
 #include "glm/vec4.hpp"
 #include "Hazel/Core/Base.h"
+
 #include "Globals.h"
 #include "TextureRef.h"
 
@@ -21,6 +22,7 @@ namespace Jelly
             Background,
 
             Player,
+            Object,
 
             Ground,
             Platform,
@@ -31,8 +33,6 @@ namespace Jelly
             Wall,
 
             Lava,
-
-            Object,
 
             MAX_COUNT
         };
@@ -109,8 +109,6 @@ namespace Jelly
         float width;
         float height;
         glm::vec2 origin;
-
-        bool hastex;
 
         glm::vec4 clr = { 1.0f, 1.0f, 1.0f, 1.0f };
         TextureRef tex;

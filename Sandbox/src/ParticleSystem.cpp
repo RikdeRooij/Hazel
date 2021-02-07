@@ -63,7 +63,7 @@ void ParticleSystem::OnRender()
         //    * glm::rotate(glm::mat4(1.0f), particle.Rotation, { 0.0f, 0.0f, 1.0f })
         //    * glm::scale(glm::mat4(1.0f), { size, size, 1.0f });
 
-        if(particle.HasTexture)
+        if(particle.Texture.has())
             Hazel::Renderer2D::DrawRotatedQuad({ particle.Position.x, particle.Position.y, z }, { size,size }, particle.Rotation, 
                                                particle.Texture.get(), { 1.f,1.f }, color);
         else
@@ -87,7 +87,6 @@ void ParticleSystem::Emit(const ParticleProps& particleProps)
     particle.ColorBegin = particleProps.ColorBegin;
     particle.ColorEnd = particleProps.ColorEnd;
     particle.Texture = particleProps.Texture;
-    particle.HasTexture = particleProps.HasTexture;
 
     particle.LifeTime = particleProps.LifeTime;
     particle.LifeRemaining = particleProps.LifeTime;

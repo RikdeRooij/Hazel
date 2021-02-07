@@ -15,8 +15,8 @@ using namespace Jelly;
 #define MOVE_JUMP_UP (7.0f * PM_SCALE) // jump power
 #define MOVE_JUMP_TIME 200 // min time in milliseconds between jumps
 
-#define MOVE_WALLJUMP_UP (5.0f * PM_SCALE) // wall-jump up power
-#define MOVE_WALLJUMP_SIDE (6.0f * PM_SCALE) // wall-jump side (away from wall) power
+#define MOVE_WALLJUMP_UP (4.0f * PM_SCALE) // wall-jump up power
+#define MOVE_WALLJUMP_SIDE (4.0f * PM_SCALE) // wall-jump side (away from wall) power
 
 #define JUMP_NOXMOVE_TIME 50.0f // miliseconds x movement is limited after jump
 
@@ -60,6 +60,8 @@ Player::Player(float x, float y, float size, float scale, PhysicsManager* physic
     physBody->SetLinearDamping(0);
 
     time = 0;
+    lastJumpTime = 0;
+    lastInsideTime = 0;
 
     m_body = physBody;
 
@@ -80,7 +82,6 @@ Player::Player(float x, float y, float size, float scale, PhysicsManager* physic
     posx = m_body->GetPosition().x * RATIO;
     posy = m_body->GetPosition().y * RATIO;
     angle = toDegrees(m_body->GetAngle());
-    hastex = true;
     origin = { .5f, .5f };
     clr = { 1, 1, 1, 1 };
 
@@ -89,7 +90,6 @@ Player::Player(float x, float y, float size, float scale, PhysicsManager* physic
     m_Particle.ColorBegin = { 0.0f, 0.9f, 0.0f, 1.0f };
     m_Particle.ColorEnd = { 0.0f, 0.8f, 0.0f, 0.1f };
     m_Particle.Texture = Hazel::Texture2D::Create("assets/particle.png");
-    m_Particle.HasTexture = true;
     m_Particle.SizeBegin = 0.25f, m_Particle.SizeVariation = 0.2f, m_Particle.SizeEnd = 0.0f;
     m_Particle.LifeTime = 0.60f;
     m_Particle.Velocity = { 0.1f, 0.1f };
@@ -118,6 +118,12 @@ void Player::Update(float dt)
     b2Vec2 vel = GetBody()->GetLinearVelocity();
 
     UpdateCollisions(vel);
+
+    if (inside)
+    {
+        lastInsideTime = time;
+        lastInsideY = posy;
+    }
 
     //getBody()->SetLinearVelocity(vel);
     speed = vel.Length();
@@ -182,6 +188,9 @@ void Player::UpdateMove(b2Vec2& vel)
 {
     float mass = GetBody()->GetMass();
 
+    float jumpDeltaTime = abs(time - lastJumpTime);
+    float insideDeltaTime = abs(time - lastInsideTime);
+
     bool airborne = inside ||
         (!grounded && !wallLeft && !wallRight && !ceiling);
 
@@ -195,10 +204,10 @@ void Player::UpdateMove(b2Vec2& vel)
     float power = (mass / move_falloff) * move_pwr_scale;
 
     // _JUMP vel.y:  0.0 | 3.4 | 4.2
-    bool allowJump = !inside &&  vel.y < 4.5f &&
+    bool allowJump = //!inside &&  
+        vel.y < 4.5f &&
         (grounded || wallLeft || wallRight); // || !ceiling)
 
-    float jumpDeltaTime = abs(time - lastJumpTime);
     if (allowJump && (jumpDeltaTime > MOVE_JUMP_TIME))
     {
         if (IsKeyPressed(Hazel::Key::Up, Hazel::Key::W))
@@ -210,11 +219,14 @@ void Player::UpdateMove(b2Vec2& vel)
 
             float opposite = (1.0f - veldn * 0.8f); // smaller when going down
 
-            if (grounded && vel.y < MOVE_JUMP_UP * 0.9f)
+            if (!inside && grounded && vel.y < MOVE_JUMP_UP * 0.9f)
             {
                 float extend = (1.0f + velup * 0.2f); // larger when going up
-
-                Jump(vel.x, MOVE_JUMP_UP * opposite * extend);
+                float limitjump = (lastInsideY <= posy ? clamp01(insideDeltaTime / 200.0f) : 1.0f);
+                // *clamp01(jumpDeltaTime / (MOVE_JUMP_TIME * 2));
+                float jumpvel = max(vel.y, MOVE_JUMP_UP * opposite * extend * limitjump);
+                
+                Jump(vel.x, jumpvel);
                 lastJumpTime = time;
                 if (velup < 0.5f) PlayJumpSound(0);
                 else PlayJumpSound(1);
@@ -225,6 +237,10 @@ void Player::UpdateMove(b2Vec2& vel)
 
                 if (wallLeft)
                 {
+                    auto force = GetBody()->GetForce();
+                    force.x *= 0.3f;
+                    GetBody()->SetForce(force);
+
                     Jump(MOVE_WALLJUMP_SIDE * reduce, MOVE_WALLJUMP_UP * opposite);
                     lastJumpTime = time;
                     if (veldn < 0.5f) PlayJumpSound(0);
@@ -232,6 +248,10 @@ void Player::UpdateMove(b2Vec2& vel)
                 }
                 if (wallRight)
                 {
+                    auto force = GetBody()->GetForce();
+                    force.x *= 0.3f;
+                    GetBody()->SetForce(force);
+
                     Jump(-MOVE_WALLJUMP_SIDE * reduce, MOVE_WALLJUMP_UP * opposite);
                     lastJumpTime = time;
                     if (veldn < 0.5f) PlayJumpSound(0);
@@ -276,6 +296,8 @@ void Player::UpdateMove(b2Vec2& vel)
 
 void Player::UpdateCollisions(b2Vec2& vel)
 {
+    auto go_pos = GetPosition();
+
     grounded = false;
     wallLeft = false;
     wallRight = false;
@@ -313,11 +335,11 @@ void Player::UpdateCollisions(b2Vec2& vel)
                 avgPos += sfPos;
             }
             avgPos = glm::vec2(avgPos.x / (float)manifold->pointCount, avgPos.y / (float)manifold->pointCount);
-            ctrDirVec = avgPos - GetPosition();
+            ctrDirVec = avgPos - go_pos;
         }
         else
         {
-            avgPos = GetPosition();
+            avgPos = go_pos;
             ctrDirVec = glm::vec2(0, 0);
         }
 

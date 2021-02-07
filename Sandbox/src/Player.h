@@ -62,8 +62,10 @@ namespace Jelly
 
     protected:
 
-        float time;
-        float lastJumpTime;
+        float time = 0;
+        float lastJumpTime = 0;
+        float lastInsideTime = 0;
+        float lastInsideY = 0;
 
         void PlayJumpSound() {} //PlayJumpSound(RandomInt(_countof(jumpSound)));
 

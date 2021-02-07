@@ -13,10 +13,12 @@ namespace Jelly
         TextureRef(const std::shared_ptr<Hazel::Texture2D>& x) : val(x) {}
 
         //operator std::shared_ptr<Hazel::Texture2D>() const { return val; }
+        operator bool() const { return val != nullptr; }
 
         const std::shared_ptr<Hazel::Texture2D>& get() const { return val; }
+        const bool has() const { return val != nullptr; }
 
     private:
-        std::shared_ptr<Hazel::Texture2D> val;
+        std::shared_ptr<Hazel::Texture2D> val = nullptr;
     };
 }

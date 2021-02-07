@@ -30,7 +30,7 @@ FIXTUREDEF(0.018f, 0.90f, 0.05f, SPONGE);
 FIXTUREDEF(0.001f, 0.90f, 0.00f, AIR);
 FIXTUREDEF(0.0001f, 0.9f, 0.00f, HELIUM);
 
-FIXTUREDEF(1.00f, 0.10f, 0.45f, TEST);
+FIXTUREDEF(0.50f, 0.10f, 0.45f, TEST);
 
 FIXTUREDEF(2.00f, 0.50f, 0.10f, LEVEL);
 
@@ -329,7 +329,7 @@ void PhysicsManager::BeginContact(b2Contact* contact)
         }
     }
 
-    if (oneWayPlatforms2)
+    if (oneWayPlatforms >= 2)
     {
         // ################################
         // https://www.iforce2d.net/src/iforce2d_OneWayWalls_demo.h
@@ -406,7 +406,7 @@ void PhysicsManager::BeginContact(b2Contact* contact)
 
 void PhysicsManager::EndContact(b2Contact* contact)
 {
-    if (oneWayPlatforms2)
+    if (oneWayPlatforms >= 2)
     {
         if (contact->IsEnabled())
         {
@@ -479,7 +479,7 @@ void PhysicsManager::PreSolve(b2Contact* contact, const b2Manifold* oldManifold)
     //contact->GetWorldManifold(&worldManifold);
 
     // make all platforms one-way
-    if (oneWayPlatforms)
+    if (oneWayPlatforms == 1 || oneWayPlatforms >= 3)
     {
         contact->SetEnabled(true);
 

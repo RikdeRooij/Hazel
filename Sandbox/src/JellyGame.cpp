@@ -1,10 +1,6 @@
 #include "JellyGame.h"
 #include <imgui/imgui.h>
 
-#include <glm/gtc/type_ptr.hpp>
-#include "DebugDraw.h"
-#include "glm/gtx/io.hpp"
-
 using namespace Jelly;
 
 // re-declare statics
@@ -88,13 +84,13 @@ void JellyGame::DestroyGame() const
 }
 
 
-#define DRAW_LAYER_COUNT 4
+#define DRAW_LAYER_COUNT 3
 
 #define LVL_DIST_ADD 0.0f
 #define LVL_DIST_DEL 4.0f
 
 #define LAVA_MOVE_SPEED 1.0f
-#define LAVA_MAX_DIST (LVL_DIST_DEL - 200.0f)
+#define LAVA_MAX_DIST (400.0f)
 
 
 glm::vec2 UpdateLava(GameObject* lava, float dt, float viewY)
@@ -109,9 +105,9 @@ glm::vec2 UpdateLava(GameObject* lava, float dt, float viewY)
     if (lavaPos.y < viewY - (LAVA_MAX_DIST * LVL_SCALE))
         lavaAddSpeed = -(lavaPos.y - (viewY - (LAVA_MAX_DIST * LVL_SCALE)));
     if (lavaPos.y > viewY)
-        lavaAddSpeed = -(lavaPos.y - viewY) * 100;
+        lavaAddSpeed = -(lavaPos.y - viewY);
 
-    lava->GetBody()->SetLinearVelocity(b2Vec2(0, (LAVA_MOVE_SPEED + lavaAddSpeed * LVL_SCALE)));
+    lava->GetBody()->SetLinearVelocity(b2Vec2(0, (LAVA_MOVE_SPEED + lavaAddSpeed)));
 
     auto lavaoffs = lava->GetTilingOffset();
     lavaoffs.x += dt * 0.0005f;
@@ -137,7 +133,7 @@ void JellyGame::OnUpdate(Hazel::Timestep ts)
 
     avg_counter++;
     dt_next += deltaTime;
-    if(dt_next >= 500.0f)
+    if (dt_next >= 500.0f)
     {
         avg_fps = (avg_counter / (dt_next * 0.001f));
         dt_next = 0;
@@ -163,7 +159,7 @@ void JellyGame::UpdateGame(Hazel::Timestep& ts)
     float dt = ts.GetSeconds();
 
     auto runSeconds = ((double)(clock() - clockStart) / CLOCKS_PER_SEC);
-    m_CameraController.SetCameraRotation((float)sin(runSeconds * 0.67) * 0.5f);
+    m_CameraController.SetCameraRotation((float)sin(runSeconds * 0.67) * 1.5f);
 
     //glm::vec3 cam_pos = m_CameraController.GetCamera().GetPosition();
     glm::vec3 cam_pos = m_CameraController.GetCameraPosition();
@@ -219,7 +215,7 @@ void JellyGame::UpdateGame(Hazel::Timestep& ts)
         auto boundsWidth = bounds.y - bounds.x;
         auto boundsHeight = bounds.w - bounds.z;
         auto pos = m_CameraController.GetCamera().GetPosition();
-        x = (x / width) * boundsWidth - boundsWidth  * 0.5f;
+        x = (x / width) * boundsWidth - boundsWidth * 0.5f;
         y = boundsHeight * 0.5f - (y / height) * boundsHeight;
         m_Particle.Position = { x + pos.x, y + pos.y };
         for (int i = 0; i < 5; i++)
@@ -242,8 +238,9 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
 
     if (Hazel::Input::BeginKeyPress(Hazel::Key::P))
     {
-        objectManager->GetPhysicsMgr()->oneWayPlatforms = !objectManager->GetPhysicsMgr()->oneWayPlatforms;
-        objectManager->GetPhysicsMgr()->oneWayPlatforms2 = !objectManager->GetPhysicsMgr()->oneWayPlatforms2;
+        auto oneway = objectManager->GetPhysicsMgr()->oneWayPlatforms;
+        if (++oneway > 2) oneway = 0;
+        objectManager->GetPhysicsMgr()->oneWayPlatforms = oneway;
         objectManager->GetPhysicsMgr()->m_numFootContacts = 0;
     }
 
@@ -258,16 +255,15 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
     }
 
     {
-        static float rotation = 0.0f;
-        rotation += ts * 50.0f;
-
         HZ_PROFILE_SCOPE("Renderer Draw");
 
         Hazel::Renderer2D::BeginScene(m_CameraController.GetCamera());
-        for (int i = 0; i < DRAW_LAYER_COUNT; i++)
+        for (int i = 0; i <= DRAW_LAYER_COUNT; i++)
         {
             objectManager->DrawObjects(i);
             if (i == 0) player->Draw(3);
+            if (i == DRAW_LAYER_COUNT) lava->Draw(3);
+
         }
         Hazel::Renderer2D::EndScene();
 
@@ -280,14 +276,11 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
                 Hazel::Renderer2D::EndScene();
         }
 
-        Hazel::Renderer2D::BeginScene(m_CameraController.GetCamera());
-
-        //player->draw(3);
-        lava->Draw(3);
-
 #if DEBUG
         if (doDebugDraw2)
         {
+            Hazel::Renderer2D::BeginScene(m_CameraController.GetCamera());
+
             auto cds = player->contacts;
             for (std::vector<struct Player::ContactData>::iterator it = cds.begin(); it != cds.end(); ++it)
             {
@@ -325,6 +318,8 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
                     }
                 }
             }
+
+            Hazel::Renderer2D::EndScene();
         }
 
         //for (int i = 0; i < 15; i++)
@@ -332,10 +327,7 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
         //    DebugDraw::DrawRay({ -1, i - 0.5f }, { 2.0f, 0 }, { 0,1,0,1 });
         //}
 #endif
-
-        Hazel::Renderer2D::EndScene();
-
-
+        
         Hazel::Renderer2D::BeginScene(m_CameraController.GetCamera());
         m_ParticleSystem.OnRender();
         Hazel::Renderer2D::EndScene();
@@ -366,7 +358,7 @@ void JellyGame::OnImGuiRender()
     {
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize | 
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize |
             ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
         if (ImGui::Begin("game over", nullptr, window_flags))
         {
@@ -444,7 +436,6 @@ void JellyGame::OnImGuiRender()
 
     ImGui::Text("Misc:");
     ImGui::Text("  oneWayPlatforms: %d", (objectManager->GetPhysicsMgr()->oneWayPlatforms));
-    ImGui::Text("  oneWayPlatforms2: %d", (objectManager->GetPhysicsMgr()->oneWayPlatforms2));
     ImGui::Text("  m_numFootContacts: %d", (objectManager->GetPhysicsMgr()->m_numFootContacts));
 
     //ImGui::ColorEdit4("Square Color", glm::value_ptr(m_SquareColor));

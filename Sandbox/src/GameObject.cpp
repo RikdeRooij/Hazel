@@ -17,7 +17,6 @@ GameObject::GameObject()
     angle = 0;
     width = 0;
     height = 0;
-    hastex = false;
 }
 
 GameObject::GameObject(b2Body* bd, float w, float h, glm::vec4 color) : GameObject()
@@ -37,7 +36,6 @@ GameObject::GameObject(b2Body* bd, float w, float h, glm::vec4 color) : GameObje
     height = h;
 
     this->origin = { 0.5f, 0.5f };
-    hastex = false;
     this->clr = color;
 }
 
@@ -51,7 +49,6 @@ GameObject::GameObject(TextureRef tex, glm::vec2 pos, glm::vec2 size, glm::vec2 
     height = size.y;
     this->tex = tex;
     this->origin = origin;
-    hastex = true;
     this->clr = { 1, 1, 1, 1 };
 }
 
@@ -70,7 +67,6 @@ GameObject::GameObject(b2Body* bd, TextureRef tex, glm::vec2 size, glm::vec2 ori
     height = size.y;
     this->tex = tex;
     this->origin = origin;
-    hastex = true;
     this->clr = { 1, 1, 1, 1 };
 }
 
@@ -78,10 +74,6 @@ GameObject::~GameObject()
 {
     m_body = nullptr;
 }
-
-
-//void GameObject::setBody(b2Body* bd) { m_body = bd; m_body->SetUserData(this); }
-
 
 glm::vec2 GameObject::GetPosition() const
 {
@@ -134,8 +126,7 @@ void GameObject::Draw(int layer)
     auto z = -0.99f + (static_cast<float>(type) / static_cast<float>(Objects::MAX_COUNT) * 0.5f);
     z += (instanceID * 0.000001f);
 
-    //renderTarget.draw(*m_drawable);
-    if (hastex)
+    if (tex.has())
         Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width, height }, angle, tex.get(), tex_tiling, tex_offset, clr);
     else
         Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width, height }, angle, clr);

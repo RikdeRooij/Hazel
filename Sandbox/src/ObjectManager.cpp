@@ -172,6 +172,8 @@ GameObject* ObjectManager::CreateBox(float x, float y, float w, float h, glm::ve
     b2Body* physBody = physicsMgr->AddBox(x, y, w * LVL_SCALE, h * LVL_SCALE, 0, bodyType, fixtureData, 0.5f, 0.5f);
 
     GameObject* object = new GameObject(physBody, w * LVL_SCALE, h * LVL_SCALE, color);
+    object->type = Objects::Object;
+    object->SetDrawLayer(0);
 
     b2BodyUserData data;
     data.pointer = reinterpret_cast<uintptr_t>(object);
