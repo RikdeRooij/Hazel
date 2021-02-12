@@ -2,7 +2,7 @@ include "./vendor/premake/premake_customization/solution_items.lua"
 
 workspace "Hazel"
 	architecture "x86_64"
-	startproject "Sandbox"
+	startproject "Jelly"
 
 	configurations
 	{
@@ -43,4 +43,4 @@ group "Dependencies"
 group ""
 
 include "Hazel"
-include "Sandbox"
+include "Jelly"

@@ -12,6 +12,7 @@
 		#define HZ_DEBUGBREAK() raise(SIGTRAP)
 	#else
 		#error "Platform doesn't support debugbreak yet!"
+		#define HZ_DEBUGBREAK()
 	#endif
 	#define HZ_ENABLE_ASSERTS
 #else
