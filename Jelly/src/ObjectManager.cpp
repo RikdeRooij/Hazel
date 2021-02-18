@@ -187,7 +187,7 @@ GameObject* ObjectManager::CreateBox(float x, float y, float w, float h, glm::ve
 GameObject* ObjectManager::AddBackground(float &y)
 {
     auto bgTex = textures[Textures::Lvl_Background];
-    glm::vec2 bgSize = { bgTex.get()->GetWidth(), bgTex.get()->GetHeight() };
+    glm::vec2 bgSize = { bgTex.Get()->GetWidth(), bgTex.Get()->GetHeight() };
 
     float bgHeight = (bgSize.y - LVL_OVERLAP);
     y += bgHeight;
@@ -208,7 +208,7 @@ GameObject* ObjectManager::AddLeftWall(float offX, float &y)
 {
     Textures::Type texType = RandomTexture(Textures::Lvl_Wall_Left_Big_0, Textures::Lvl_Wall_Left_Small_1);
     auto lwallTex = textures[texType];
-    auto lwallSize = glm::vec2(lwallTex.get()->GetWidth(), lwallTex.get()->GetHeight());
+    auto lwallSize = glm::vec2(lwallTex.Get()->GetWidth(), lwallTex.Get()->GetHeight());
 
     float h = (lwallSize.y - LVL_OVERLAP);
     y += h;
@@ -244,7 +244,7 @@ GameObject* ObjectManager::AddRightWall(float offX, float &y)
 {
     Textures::Type texType = RandomTexture(Textures::Lvl_Wall_Right_Big_0, Textures::Lvl_Wall_Right_Small_1);
     auto rwallTex = textures[texType];
-    auto rwallSize = glm::vec2(rwallTex.get()->GetWidth(), rwallTex.get()->GetHeight());
+    auto rwallSize = glm::vec2(rwallTex.Get()->GetWidth(), rwallTex.Get()->GetHeight());
 
     float h = (rwallSize.y - LVL_OVERLAP);
     y += h;
@@ -278,7 +278,7 @@ GameObject* ObjectManager::AddRightWall(float offX, float &y)
 GameObject* ObjectManager::AddPlatform(float x, float y, glm::vec2 org, float angle, Textures::Type type)
 {
     auto tex = textures[type];
-    auto texSize = glm::vec2(tex.get()->GetWidth(), tex.get()->GetHeight());
+    auto texSize = glm::vec2(tex.Get()->GetWidth(), tex.Get()->GetHeight());
 
     float h = (texSize.y - LVL_OVERLAP);
     y += h;
@@ -296,7 +296,7 @@ GameObject* ObjectManager::AddPlatform(float x, float y, glm::vec2 org, float an
 GameObject* ObjectManager::AddSawblade(float x, float y)
 {
     auto sawTex = textures[Textures::SawBlade];
-    auto sawSize = glm::vec2(sawTex.get()->GetWidth(), sawTex.get()->GetHeight());
+    auto sawSize = glm::vec2(sawTex.Get()->GetWidth(), sawTex.Get()->GetHeight());
 
     float d = -sign(x);
     float r = (sawSize.x + sawSize.y) * 0.5f;
@@ -331,7 +331,7 @@ GameObject* ObjectManager::AddSawblade(float x, float y)
 GameObject* ObjectManager::AddSpike(float x, float y, float angle)
 {
     auto spikeTex = textures[Textures::Spike];
-    auto spikeSize = glm::vec2(spikeTex.get()->GetWidth(), spikeTex.get()->GetHeight());
+    auto spikeSize = glm::vec2(spikeTex.Get()->GetWidth(), spikeTex.Get()->GetHeight());
 
     b2Body* physBody = physicsMgr->AddBox((x)* LVL_SCALE, (y)* LVL_SCALE,
         (float)spikeSize.x * LVL_SCALE, (float)spikeSize.y * LVL_SCALE, angle, staticBody, &FixtureData::SENSOR);
@@ -349,7 +349,7 @@ void ObjectManager::AddSpikes(float x, float y, float angle)
 {
     const int count = 4;
     auto tex = textures[Textures::Spike];
-    auto size = glm::vec2(tex.get()->GetWidth(), tex.get()->GetHeight());
+    auto size = glm::vec2(tex.Get()->GetWidth(), tex.Get()->GetHeight());
 
     float rads = toRadians(angle);
     glm::vec2 dir(cos(rads), sin(rads));
@@ -447,7 +447,7 @@ void ObjectManager::GenerateLevel(float y)
 void ObjectManager::UpdateLevel(float y)
 {
     y = y / LVL_SCALE;
-    float bgHalfX = textures[Textures::Lvl_Background].get()->GetWidth() * 0.5f;
+    float bgHalfX = textures[Textures::Lvl_Background].Get()->GetWidth() * 0.5f;
     float wallOffX = bgHalfX - LVL_WALLS_X;
 
     if (lvl_c_y < y)

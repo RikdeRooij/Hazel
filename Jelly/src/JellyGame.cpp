@@ -29,6 +29,13 @@ void JellyGame::OnAttach()
     m_Particle.VelocityVariation = { 2.0f, 2.0f };
     m_Particle.Position = { 0.0f, 0.0f };
 
+    m_Particle.ColorBegin = { 1,1,1, 1.0f };
+    m_Particle.ColorEnd = { 1,1,1, 1.0f };
+
+    m_Particle.SizeBegin = 0.2f, m_Particle.SizeVariation = 0.1f, m_Particle.SizeEnd = 0.2f;
+
+    m_Particle.Animation = TextureAtlas("assets/bubble.xml");
+
 #if !DEBUG
     std::srand(std::time(nullptr));
 #else

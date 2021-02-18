@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TextureAtlas imagePath="jelly_anim.png" width="300" height="240">
+    <sprite n="Jelly_anim_00.png" x="0" y="0" w="100" h="80" pX="0.5" pY="0.5"/>
+    <sprite n="Jelly_anim_01.png" x="100" y="0" w="100" h="80" pX="0.5" pY="0.5"/>
+    <sprite n="Jelly_anim_02.png" x="200" y="0" w="100" h="80" pX="0.5" pY="0.5"/>
+    <sprite n="Jelly_anim_03.png" x="0" y="80" w="100" h="80" pX="0.5" pY="0.5"/>
+    <sprite n="Jelly_anim_04.png" x="100" y="80" w="100" h="80" pX="0.5" pY="0.5"/>
+    <sprite n="Jelly_anim_05.png" x="200" y="80" w="100" h="80" pX="0.5" pY="0.5"/>
+    <sprite n="Jelly_anim_06.png" x="0" y="160" w="100" h="80" pX="0.5" pY="0.5"/>
+    <sprite n="Jelly_anim_07.png" x="100" y="160" w="100" h="80" pX="0.5" pY="0.5"/>
+    <sprite n="Jelly_anim_08.png" x="200" y="160" w="100" h="80" pX="0.5" pY="0.5"/>
+</TextureAtlas>

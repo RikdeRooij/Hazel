@@ -10,7 +10,9 @@ project "Jelly"
 	files
 	{
 		"src/**.h",
-		"src/**.cpp"
+		"src/**.cpp",
+		"vendor/tinyxml2/**.h",
+		"vendor/tinyxml2/**.cpp"
 	}
 
 	includedirs

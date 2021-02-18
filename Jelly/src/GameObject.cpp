@@ -126,8 +126,8 @@ void GameObject::Draw(int layer)
     auto z = -0.99f + (static_cast<float>(type) / static_cast<float>(Objects::MAX_COUNT) * 0.5f);
     z += (instanceID * 0.000001f);
 
-    if (tex.has())
-        Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width, height }, angle, tex.get(), tex_tiling, tex_offset, clr);
+    if (tex.Has())
+        Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width, height }, angle, tex.Get(), tex_tiling, tex_offset, clr);
     else
         Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width, height }, angle, clr);
 }

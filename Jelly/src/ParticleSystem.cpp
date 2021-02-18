@@ -39,6 +39,9 @@ void ParticleSystem::OnUpdate(float ts)
         particle.LifeRemaining -= ts;
         particle.Position += particle.Velocity * (float)ts;
         particle.Rotation += 0.01f * ts;
+
+        auto a = floor((1 - (particle.LifeRemaining / particle.LifeTime)) * particle.AnimationCount);
+        particle.AnimationIndex = clamp(static_cast<int>(a), 0, particle.AnimationCount-1);
     }
 }
 
@@ -63,11 +66,21 @@ void ParticleSystem::OnRender()
         //    * glm::rotate(glm::mat4(1.0f), particle.Rotation, { 0.0f, 0.0f, 1.0f })
         //    * glm::scale(glm::mat4(1.0f), { size, size, 1.0f });
 
-        if(particle.Texture.has())
-            Hazel::Renderer2D::DrawRotatedQuad({ particle.Position.x, particle.Position.y, z }, { size,size }, particle.Rotation, 
-                                               particle.Texture.get(), { 1.f,1.f }, color);
+        if (particle.Animation.Valid())
+        {
+            auto texrect = particle.Animation.GetRect(particle.AnimationIndex);
+            Hazel::Renderer2D::DrawRotatedQuad({ particle.Position.x, particle.Position.y, z }, { size,size }, particle.Rotation,
+                                               particle.Animation.GetTextureRef().Get(), { texrect.z, texrect.w }, { texrect.x, texrect.y }, color);
+        }
+        else if (particle.Texture.Has())
+        {
+            Hazel::Renderer2D::DrawRotatedQuad({ particle.Position.x, particle.Position.y, z }, { size,size }, particle.Rotation,
+                                               particle.Texture.Get(), { 1.f,1.f }, color);
+        }
         else
+        {
             Hazel::Renderer2D::DrawRotatedQuad({ particle.Position.x, particle.Position.y, z }, { size,size }, particle.Rotation, color);
+        }
     }
 }
 
@@ -87,6 +100,8 @@ void ParticleSystem::Emit(const ParticleProps& particleProps)
     particle.ColorBegin = particleProps.ColorBegin;
     particle.ColorEnd = particleProps.ColorEnd;
     particle.Texture = particleProps.Texture;
+    particle.Animation = particleProps.Animation;
+    particle.AnimationCount = particleProps.Animation.RectCount();
 
     particle.LifeTime = particleProps.LifeTime;
     particle.LifeRemaining = particleProps.LifeTime;

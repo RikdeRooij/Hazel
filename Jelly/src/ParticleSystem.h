@@ -4,6 +4,7 @@
 #include "glm/vec4.hpp"
 #include <vector>
 #include "TextureRef.h"
+#include "TextureAtlas.h"
 
 namespace Jelly
 {
@@ -13,6 +14,7 @@ namespace Jelly
         glm::vec2 Velocity, VelocityVariation;
         glm::vec4 ColorBegin, ColorEnd;
         Jelly::TextureRef Texture;
+        Jelly::TextureAtlas Animation;
         float SizeBegin, SizeEnd, SizeVariation;
         float LifeTime = 1.0f;
     };
@@ -53,6 +55,9 @@ namespace Jelly
             glm::vec2 Velocity;
             glm::vec4 ColorBegin, ColorEnd;
             Jelly::TextureRef Texture;
+            Jelly::TextureAtlas Animation;
+            int AnimationIndex = 0;
+            int AnimationCount = 0;
             float Rotation = 0.0f;
             float SizeBegin, SizeEnd;
 

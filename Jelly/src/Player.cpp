@@ -1,7 +1,12 @@
 #include "Player.h"
 #include "Hazel/Renderer/Renderer2D.h"
 #include "Hazel/Core/Input.h"
-#include "DebugDraw.h"
+#include <windows.h>
+#include <playsoundapi.h>
+#include <mmsystem.h>
+#include "../vendor/tinyxml2/tinyxml2.h"
+#include "TextureAtlas.h"
+#pragma comment(lib, "winmm.lib")
 
 using namespace Jelly;
 
@@ -72,7 +77,7 @@ Player::Player(float x, float y, float size, float scale, PhysicsManager* physic
     height = size + 0.1f;//tsize.y * scale;
 
     this->tex = Hazel::Texture2D::Create("assets/Jelly2.png");
-    glm::vec2 tsize = { tex.get()->GetWidth(), tex.get()->GetHeight() };
+    glm::vec2 tsize = { tex.Get()->GetWidth(), tex.Get()->GetHeight() };
     float tdx = (size + 0.08f) / tsize.x;
     float tdy = (size + 0.08f) / tsize.y;
     float td = max(tdx, tdy);
@@ -95,6 +100,8 @@ Player::Player(float x, float y, float size, float scale, PhysicsManager* physic
     m_Particle.Velocity = { 0.1f, 0.1f };
     m_Particle.VelocityVariation = { 2.5f, 2.5f };
     m_Particle.Position = { 0.0f, 0.0f };
+
+    textureAtlas = TextureAtlas("assets/jelly_anim.xml");
 }
 
 Player::~Player()
@@ -102,20 +109,19 @@ Player::~Player()
 
 }
 
-void Player::Draw(int layer)
-{
-    if (dontDraw)
-        return;
-    GameObject::Draw(layer);
-}
-
 void Player::Update(float dt)
 {
     time += dt * 1000;
+    animtime += dt;
 
 
     //b2Vec2 pos = getBody()->GetPosition();
-    b2Vec2 vel = GetBody()->GetLinearVelocity();
+    prev_vel = vel;
+    vel = GetBody()->GetLinearVelocity();
+
+    bool was_grounded = grounded;
+    bool was_wallLeft = wallLeft;
+    bool was_wallRight = wallRight;
 
     UpdateCollisions(vel);
 
@@ -127,6 +133,20 @@ void Player::Update(float dt)
 
     //getBody()->SetLinearVelocity(vel);
     speed = vel.Length();
+
+
+    if (grounded && !was_grounded)
+    {
+        if (prev_vel.y < -4.f)
+        {
+            DBG_OUTPUT("land:   %.3f   %.3f", vel.y, prev_vel.y);
+            lastLandTime = time;
+        }
+    }
+
+    bool klr = (key_left || key_right);
+    bool wall_squish = klr && (wallLeft || wallRight || was_wallLeft || was_wallRight);
+    anim_squish = Interpolate::Linear(anim_squish, wall_squish, dt * 10);
 
 
     if (Hazel::Input::BeginKeyPress(Hazel::Key::X))
@@ -219,17 +239,19 @@ void Player::UpdateMove(b2Vec2& vel)
 
             float opposite = (1.0f - veldn * 0.8f); // smaller when going down
 
-            if (!inside && grounded && vel.y < MOVE_JUMP_UP * 0.9f)
+            if (!inside && grounded && vel.y < MOVE_JUMP_UP * 0.85f)
             {
                 float extend = (1.0f + velup * 0.2f); // larger when going up
                 float limitjump = (lastInsideY <= posy ? clamp01(insideDeltaTime / 200.0f) : 1.0f);
                 // *clamp01(jumpDeltaTime / (MOVE_JUMP_TIME * 2));
                 float jumpvel = max(vel.y, MOVE_JUMP_UP * opposite * extend * limitjump);
-                
-                Jump(vel.x, jumpvel);
-                lastJumpTime = time;
-                if (velup < 0.5f) PlayJumpSound(0);
-                else PlayJumpSound(1);
+                if (jumpvel - vel.y > MOVE_JUMP_UP * 0.1f)
+                {
+                    Jump(vel.x, jumpvel);
+                    lastJumpTime = time;
+                    if (velup < 0.5f) PlayJumpSound(0);
+                    else PlayJumpSound(1);
+                }
             }
             else
             {
@@ -261,8 +283,8 @@ void Player::UpdateMove(b2Vec2& vel)
         }
     }
 
-
-    if (IsKeyPressed(Hazel::Key::Left, Hazel::Key::A))
+    bool keyleft = IsKeyPressed(Hazel::Key::Left, Hazel::Key::A);
+    if (keyleft)
     {
 #if TEST
         float limit = clamp01(MOVE_SIDE_LIMIT + vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME);
@@ -275,7 +297,8 @@ void Player::UpdateMove(b2Vec2& vel)
         this->width = std::abs(width);
     }
 
-    if (IsKeyPressed(Hazel::Key::Right, Hazel::Key::D))
+    bool keyright = IsKeyPressed(Hazel::Key::Right, Hazel::Key::D);
+    if (keyright)
     {
 #if TEST
         float limit = clamp01(MOVE_SIDE_LIMIT - vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME);
@@ -290,8 +313,16 @@ void Player::UpdateMove(b2Vec2& vel)
 
     if (IsKeyPressed(Hazel::Key::Down, Hazel::Key::S))
     {
-        Move( 0.f, -1.f );
+        Move(0.f, -1.f);
     }
+
+    //if (!jumpanim)
+    //{
+    //    if (key_left != keyleft) animtime = 0;
+    //    if (key_right != keyright) animtime = 0;
+    //}
+    key_left = keyleft;
+    key_right = keyright;
 }
 
 void Player::UpdateCollisions(b2Vec2& vel)
@@ -354,7 +385,7 @@ void Player::UpdateCollisions(b2Vec2& vel)
         bool isUp = (normal.y > 0 && abs(normal.x) < GROUND_NORMAL);
 
         bool isInside = manifold->pointCount > 0 &&
-            (glm::length(ctrDirVec) < 0.1f || 
+            (glm::length(ctrDirVec) < 0.1f ||
             (abs(ctrDirVec.x) < 0.2f && abs(ctrDirVec.y) < 0.19f));
 
         if (isInside)
@@ -398,10 +429,16 @@ void Player::MoveX(float power) const
 #endif
 }
 
-void Player::Jump(float x, float power) const
+void Player::Jump(float x, float power)
 {
     if (dead)
         return;
+
+    //if (!jumpanim)
+    {
+        jumpanim = true;
+        animtime = 0;
+    }
 
     //PlayJumpSound();
 
@@ -435,9 +472,95 @@ void Player::Die()
 
     GetBody()->SetAwake(false);
 
-    SetColor({ 1,1,1,0 });
+    SetColor({ 1,1,1,0.1f });
 
     Explode();
 
+    PlaySoundA("assets/Sounds/laser6.wav", nullptr, SND_FILENAME | SND_ASYNC);
+
     dead = true;
+}
+
+void Player::PlayJumpSound(int i) const
+{
+    PlaySoundA(format("assets/Sounds/jump%d.wav", (i + 1)).c_str(), nullptr, SND_FILENAME | SND_ASYNC);
+}
+
+void Player::Draw(int layer)
+{
+    if (dontDraw)
+        return;
+    //GameObject::Draw(layer);
+
+    if (this->draw_layer != layer)
+        return;
+
+    float px = posx + abs(width) * (0.5f - origin.x);
+    float py = posy + height * (0.5f - origin.y);
+
+
+    auto z = -0.99f + (static_cast<float>(type) / static_cast<float>(Objects::MAX_COUNT) * 0.5f);
+    z += (instanceID * 0.000001f);
+
+    const float anim_speed_breathe = 3;
+
+    const float anim_idle_speed = 5;
+    const float anim_move_speed = anim_idle_speed;
+
+
+    float anim_land = clamp01(abs(lastLandTime - time) * 0.005f);
+    float hm = anim_land * 0.3f + 0.7f;
+    py -= height * (1-hm) * .25f;
+    float wm = 1 +((1- anim_land) * 0.15f);
+
+    float s = Interpolate::Hermite(0, 1, TextureAtlas::AnimTime((animtime + 1.5f) * anim_speed_breathe, 3.0f, true) / 3.0f);
+    const float breathe = 0.04f;
+    float sw = (s * breathe);// *1.5f;
+    float sh = ((0.5f + (0.5f - s)) * breathe);
+    py += sh * .5f;
+    px += sign(width) * 0.04f; // perspective image
+
+    if (textureAtlas.Valid() && jumpanim)
+    {
+        const float animspeed = 7.0f;// 4.5f;
+        const uint acnt = 3;
+
+        //if (animtime * animspeed >= ((acnt - 1) * 2 - 0.1f))
+        if (animtime * animspeed >= (acnt - 0.1f))
+            jumpanim = false;
+        auto  texRect = textureAtlas.AnimationRect(animtime * animspeed + 1, 6, acnt, false);
+
+        Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width * wm + sign(width) * sw, height * hm + sh }, angle,
+                                           textureAtlas.GetTextureRef().Get(), 
+                                           { texRect.z, texRect.w }, { texRect.x, texRect.y }, clr);
+    }
+    else if (textureAtlas.Valid())
+    {
+        const float minxspd = 0.9f;
+        bool klr = (key_left || key_right) && (speed > minxspd && abs(vel.x) > minxspd && abs(prev_vel.x) > minxspd && (!wallLeft && !wallRight));
+        float animspeed = klr ? anim_move_speed : anim_idle_speed;
+
+        auto texRect = textureAtlas.AnimationRect(animtime * animspeed, klr ? 5 : 0, klr ? -3 : 3, true);
+        //texRect = textureAtlas.GetRect(6);
+
+        float fangle = angle;
+        //fangle = angle - width * anim_squish * 4;
+
+        const float amd = 0.1f;
+        wm = wm * (clamp01(1 - anim_squish) * amd + (1-amd));
+        hm = hm * (clamp01(anim_squish) * amd + 1.0f);
+
+
+        Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width * wm + sign(width) * sw, height * hm + sh }, fangle,
+                                           textureAtlas.GetTextureRef().Get(),
+                                           { texRect.z, texRect.w }, { texRect.x, texRect.y }, clr);
+    }
+    else
+    {
+        if (tex.Has())
+            Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width * wm + sign(width) * sw, height * hm + sh }, angle,
+                                               tex.Get(), tex_tiling, tex_offset, clr);
+        else
+            Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width * wm + sign(width) * sw, height * hm + sh }, angle, clr);
+    }
 }

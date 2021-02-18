@@ -3,6 +3,7 @@
 #include "PhysicsManager.h"
 #include "GameObject.h"
 #include "ParticleSystem.h"
+#include "TextureAtlas.h"
 
 namespace Jelly
 {
@@ -23,7 +24,7 @@ namespace Jelly
 
 
         void MoveX(float power) const;
-        void Jump(float x, float power) const;
+        void Jump(float x, float power);
         void Move(float dx, float dy) const;
 
 
@@ -40,6 +41,9 @@ namespace Jelly
         bool inside = false;
 
         float speed = 0;
+
+        bool key_left = false;
+        bool key_right = false;
 
 #if DEBUG
         typedef struct ContactData
@@ -62,19 +66,23 @@ namespace Jelly
 
     protected:
 
+        b2Vec2 vel = b2Vec2(0.f, 0.f);
+        b2Vec2 prev_vel = b2Vec2(0.f, 0.f);
+        float animtime = 0;
         float time = 0;
         float lastJumpTime = 0;
+        float lastLandTime = 0;
         float lastInsideTime = 0;
         float lastInsideY = 0;
+        bool jumpanim = false;
+        float anim_squish = 0;
 
-        void PlayJumpSound() {} //PlayJumpSound(RandomInt(_countof(jumpSound)));
+        void PlayJumpSound() const { PlayJumpSound(RandomInt(3)); }
 
-        void PlayJumpSound(int i)
-        {
-
-        }
+        void PlayJumpSound(int i) const;
 
         ParticleProps m_Particle;
 
+        TextureAtlas textureAtlas;
     };
 }

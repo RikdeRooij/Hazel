@@ -25,23 +25,14 @@
 #include "glm/vec2.hpp"
 #include <random>
 
-
 #pragma endregion [INCLUDES]
-
 
 ///////////////////////////////////////////////////////////////////
 
-
-//using namespace std;
-//using namespace sf;
-
 typedef unsigned int uint;
 typedef unsigned long ulong;
-//typedef TCHAR *LPTSTR, *LPTCH; // TEXT("x") _T("x")
-
 
 // --------------------------------
-
 
 // Smallest possible single value greater than zero.
 #define EPSILON 1.401298E-45f
@@ -54,12 +45,9 @@ typedef unsigned long ulong;
 #define UNRATIO (1.0F/RATIO)
 #define METERS_PER_PIXEL UNRATIO
 
-
 ///////////////////////////////////////////////////////////////////
 
-
 #pragma region [NUMERICS]
-
 
 template <typename T> inline T sign(T val) { return val < 0 ? T(-1) : T(1); } // val < 0 ? -1 : 1;
 template <typename T> inline T sign0(T val) { return val < -EPSILON ? -1 : val > EPSILON ? 1 : 0; }
@@ -81,14 +69,12 @@ template <typename T> inline T pow3(T val) { return val * val * val; }
 // val * val * val * val
 template <typename T> inline T pow4(T val) { return val * val * val * val; }
 
-
 // Performs division only when the denominator is greater than 0. (returns zero if not)
 template<typename T, typename U> inline void safeDivide(T& num, U absDenom) { if (absDenom > EPSILON) num /= absDenom; else num *= U(0); }
 
 // Performs division only when the denominator is greater than 0. (returns zero if not)
 template<typename T> inline T safeDivided(T num, T absDenom) { return absDenom > EPSILON ? (num / absDenom) : 0; }
 template<typename T, typename U> inline T safeDivided(const T& num, U absDenom) { return absDenom > EPSILON ? (num / absDenom) : (num * 0); }
-
 
 // --------------------------------
 
@@ -110,7 +96,6 @@ template<typename T> inline T toDegrees(T radians) { return (radians * RAD2DEG);
 #define SQRT2 1.4142135623730950f   // sqrt(2)
 #define SQRT3 1.7320508075688773f   // sqrt(3)
 #define SQRTH 0.70710678118654752f  // sqrt(0.5) or 1/sqrt(2) or sqrt(2)/2
-
 
 // --------------------------------
 
@@ -156,12 +141,11 @@ inline bool Bit(int a, int b) { return (a >> b) & 1; }
 
 // --------------------------------
 
-
 namespace Interpolate
 {
 
     // Interpolates between from and to by value (clamped between 0 and 1).
-    inline float Linear(float from, float to, float value)
+    inline float Linear(const float from, float to, float value)
     {
         if (value < 0.0f) return from;
         else if (value > 1.0f) return to;
