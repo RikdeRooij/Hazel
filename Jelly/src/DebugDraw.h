@@ -46,6 +46,8 @@ public:
 
     static void DrawLine(const glm::vec2& a, const glm::vec2& b, const glm::vec4& color);
 
+    static void DrawLineRect(const glm::vec2 & a, const glm::vec2 & b, const glm::vec4 & color);
+
 private:
 
     b2World* m_World = nullptr;

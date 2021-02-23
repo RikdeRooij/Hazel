@@ -7,7 +7,7 @@ using namespace Jelly;
 ObjectManager* Jelly::JellyGame::objectManager;
 
 JellyGame::JellyGame()
-    : Layer("Sandbox2D"), m_CameraController(1280.0f / 720.0f, true), debugDraw(nullptr), player(nullptr), lava(nullptr), clockStart(0)
+    : Layer("JellyGame"), m_CameraController(1280.0f / 720.0f, true), debugDraw(nullptr), player(nullptr), lava(nullptr), clockStart(0)
 {
     m_CameraController.SetZoomLevel(2.5f);
     m_CameraController.OnResize(1280, 720);
@@ -21,20 +21,17 @@ void JellyGame::OnAttach()
     m_CameraController.OnResize(m_ScreenWidth, m_ScreenHeight);
 
     // Init here
-    m_Particle.ColorBegin = { 254 / 255.0f, 212 / 255.0f, 123 / 255.0f, 1.0f };
-    m_Particle.ColorEnd = { 254 / 255.0f, 109 / 255.0f, 41 / 255.0f, 1.0f };
-    m_Particle.SizeBegin = 0.1f, m_Particle.SizeVariation = 0.2f, m_Particle.SizeEnd = 0.0f;
-    m_Particle.LifeTime = 1.0f;
-    m_Particle.Velocity = { 0.0f, 0.0f };
-    m_Particle.VelocityVariation = { 2.0f, 2.0f };
-    m_Particle.Position = { 0.0f, 0.0f };
+    lavaParticle.LifeTime = 1.0f;
+    lavaParticle.Velocity = { -0.2f, 0.4f };
+    lavaParticle.VelocityVariation = { 0.3f, 0.3f };
+    lavaParticle.Position = { 0.0f, 0.0f };
 
-    m_Particle.ColorBegin = { 1,1,1, 1.0f };
-    m_Particle.ColorEnd = { 1,1,1, 1.0f };
+    lavaParticle.ColorBegin = { 1,1,1, 1.0f };
+    lavaParticle.ColorEnd = { 1,1,1, 1.0f };
 
-    m_Particle.SizeBegin = 0.2f, m_Particle.SizeVariation = 0.1f, m_Particle.SizeEnd = 0.2f;
+    lavaParticle.SizeBegin = 0.2f, lavaParticle.SizeVariation = 0.2f, lavaParticle.SizeEnd = 0.3f;
 
-    m_Particle.Animation = TextureAtlas("assets/bubble.xml");
+    lavaParticle.Animation = TextureAtlas("assets/bubble.xml");
 
 #if !DEBUG
     std::srand(std::time(nullptr));
@@ -68,7 +65,13 @@ void JellyGame::StartGame()
     glm::vec3 ctr = m_CameraController.GetCamera().GetPosition();
     objectManager->GenerateLevel(ctr.y);
 
-    this->player = objectManager->CreatePlayer(0, 0, 50);
+    float startX =
+#if DEBUG
+        -250;
+#else
+        0;
+#endif
+    this->player = objectManager->CreatePlayer(startX, 0, 50);
 
     this->lava = objectManager->CreateLava(0, -800, 600 * 4, 200 * 4);
 
@@ -96,6 +99,9 @@ void JellyGame::DestroyGame() const
 #define LVL_DIST_ADD 0.0f
 #define LVL_DIST_DEL 4.0f
 
+
+#define PARTICLES_DX 16.0f
+#define PARTICLES_DY 1.5f
 #define LAVA_MOVE_SPEED 1.0f
 #define LAVA_MAX_DIST (400.0f)
 
@@ -103,7 +109,7 @@ void JellyGame::DestroyGame() const
 glm::vec2 UpdateLava(GameObject* lava, float dt, float viewY)
 {
 #if DEBUG
-    viewY -= 4.f;
+    viewY -= 3.f;
 #endif
     lava->Update(dt);
     glm::vec2 lavaPos = lava->GetPosition({ 0.5f, 0.5f });
@@ -117,10 +123,26 @@ glm::vec2 UpdateLava(GameObject* lava, float dt, float viewY)
     lava->GetBody()->SetLinearVelocity(b2Vec2(0, (LAVA_MOVE_SPEED + lavaAddSpeed)));
 
     auto lavaoffs = lava->GetTilingOffset();
-    lavaoffs.x += dt * 0.0005f;
+    lavaoffs.x += dt * 0.08f;
     lava->SetTilingOffset(lavaoffs);
 
     return lavaPos;
+}
+
+void UpdateLavaParticles(ParticleProps& particle, const glm::vec2& lavaPos, float dt)
+{
+    static float s_lastParticleTime = 0;
+    s_lastParticleTime -= dt;
+    if (s_lastParticleTime < 0)
+    {
+        s_lastParticleTime = 0.01f + Random::Float() * 0.7f;
+        auto ppos = lavaPos;
+        ppos.x += (Random::Float() - 0.5f) * PARTICLES_DX;
+        float rf = Random::Float();
+        ppos.y += ((1.f - rf * rf) - 0.5f - 0.5f) * PARTICLES_DY - 0.08f;
+        particle.Position = ppos;
+        ParticleSystem::S_Emit(particle);
+    }
 }
 
 glm::vec2 UpdatePlayer(Player* player, float dt, Hazel::OrthographicCameraController& camCtrl)
@@ -167,6 +189,7 @@ void JellyGame::UpdateGame(Hazel::Timestep& ts)
 
     auto runSeconds = ((double)(clock() - clockStart) / CLOCKS_PER_SEC);
     m_CameraController.SetCameraRotation((float)sin(runSeconds * 0.67) * 1.5f);
+    lava->GetBody()->SetTransform(lava->GetBody()->GetPosition(), ((float)sin(runSeconds * 0.67) * 1.5f * DEG2RAD));
 
     //glm::vec3 cam_pos = m_CameraController.GetCamera().GetPosition();
     glm::vec3 cam_pos = m_CameraController.GetCameraPosition();
@@ -179,6 +202,7 @@ void JellyGame::UpdateGame(Hazel::Timestep& ts)
     objectManager->UpdateStep(dt);
     glm::vec2 player_pos = UpdatePlayer(player, dt, m_CameraController);
     auto lavaPos = UpdateLava(lava, dt, player_pos.y);
+    UpdateLavaParticles(lavaParticle, lavaPos, dt);
 
     objectManager->UpdateLevel(cam_pos.y + zoom + LVL_DIST_ADD);
     float delBelow = std::min(lavaPos.y, cam_pos.y - zoom);
@@ -224,9 +248,12 @@ void JellyGame::UpdateGame(Hazel::Timestep& ts)
         auto pos = m_CameraController.GetCamera().GetPosition();
         x = (x / width) * boundsWidth - boundsWidth * 0.5f;
         y = boundsHeight * 0.5f - (y / height) * boundsHeight;
-        m_Particle.Position = { x + pos.x, y + pos.y };
+        lavaParticle.Position = { x + pos.x, y + pos.y };
         for (int i = 0; i < 5; i++)
-            m_ParticleSystem.Emit(m_Particle);
+        {
+            lavaParticle.Position = { x + pos.x + (Random::Float() - 0.5f) * 3, y + pos.y + (Random::Float() - 0.5f) * 3 };
+            m_ParticleSystem.Emit(lavaParticle);
+        }
     }
 
     m_ParticleSystem.OnUpdate(ts);
@@ -270,9 +297,16 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
             objectManager->DrawObjects(i);
             if (i == 0) player->Draw(3);
             if (i == DRAW_LAYER_COUNT) lava->Draw(3);
-
         }
+
+        m_ParticleSystem.OnRender();
+
         Hazel::Renderer2D::EndScene();
+
+
+        //Hazel::Renderer2D::BeginScene(m_CameraController.GetCamera());
+        //m_ParticleSystem.OnRender();
+        //Hazel::Renderer2D::EndScene();
 
         if (doDebugDraw)
         {
@@ -326,6 +360,15 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
                 }
             }
 
+
+             glm::vec2 lavaPos = lava->GetPosition({ 0.5f, 0.5f });
+             auto ppos = lavaPos;
+             auto psize = glm::vec2(PARTICLES_DX * .5f, PARTICLES_DY * .5f);
+             ppos.y = ppos.y - (psize.y + 0.08f);
+             
+             //DebugDraw::DrawLine(ppos - psize, ppos + psize, { 1, 1, 0, 1 });
+             DebugDraw::DrawLineRect(ppos - psize, ppos + psize, { 1, 1, 0, 1 });
+
             Hazel::Renderer2D::EndScene();
         }
 
@@ -334,20 +377,17 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
         //    DebugDraw::DrawRay({ -1, i - 0.5f }, { 2.0f, 0 }, { 0,1,0,1 });
         //}
 #endif
-        
-        Hazel::Renderer2D::BeginScene(m_CameraController.GetCamera());
-        m_ParticleSystem.OnRender();
-        Hazel::Renderer2D::EndScene();
     }
 }
 
 // 0 = top-left, 1 = top-right, 2 = bottom-left, 3 = bottom-right
-ImGuiWindowFlags SetWindowPos(int corner = -1, float DISTANCE = 10.0f)
+ImGuiWindowFlags SetWindowPos(int corner = -1, float xDistance = 10.0f, float yDistance = 10.0f)
 {
     ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImVec2 work_area_pos = viewport->GetWorkPos();   // Instead of using viewport->Pos we use GetWorkPos() to avoid menu bars, if any!
     ImVec2 work_area_size = viewport->GetWorkSize();
-    ImVec2 window_pos = ImVec2((corner & 1) ? (work_area_pos.x + work_area_size.x - DISTANCE) : (work_area_pos.x + DISTANCE), (corner & 2) ? (work_area_pos.y + work_area_size.y - DISTANCE) : (work_area_pos.y + DISTANCE));
+    ImVec2 window_pos = ImVec2((corner & 1) ? (work_area_pos.x + work_area_size.x - xDistance) : (work_area_pos.x + xDistance), 
+                               (corner & 2) ? (work_area_pos.y + work_area_size.y - yDistance) : (work_area_pos.y + yDistance));
     ImVec2 window_pos_pivot = ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
     ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize |
@@ -367,85 +407,95 @@ void JellyGame::OnImGuiRender()
         ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize |
             ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-        if (ImGui::Begin("game over", nullptr, window_flags))
+        if (ImGui::Begin("GAME OVER", nullptr, window_flags))
         {
             ImGui::Text("Press 'r' to restart");
         }
         ImGui::End();
     }
-
-
-    ImGui::Begin("Info", nullptr, SetWindowPos(0));
-
-    ImGui::Text("  Best Highscore: %d", (playerScoreBestMaxY));
-    ImGui::Separator();
-    auto runSeconds = ((double)(clock() - clockStart) / CLOCKS_PER_SEC);
-    ImGui::Text("  Time: %.1f", (round(runSeconds * 5) * .2));
-    ImGui::Text("  Current Highscore: %d", (playerScoreMaxY));
-    ImGui::Text("  Score: %d", (playerScoreY));
-
+    
+    if (ImGui::Begin("Info", nullptr, SetWindowPos(0)))
+    {
+        ImGui::Text("  Best Highscore: %d", (playerScoreBestMaxY));
+        ImGui::Separator();
+        auto runSeconds = ((double)(clock() - clockStart) / CLOCKS_PER_SEC);
+        ImGui::Text("  Time: %.1f", (round(runSeconds * 5) * .2));
+        ImGui::Text("  Current Highscore: %d", (playerScoreMaxY));
+        ImGui::Text("  Score: %d", (playerScoreY));
+    }
+    ImGui::End();
+    
+    if (ImGui::Begin("System", nullptr, SetWindowPos(1)))
+    {
+        ImGui::Text("  FPS: %.0f", (avg_fps));
+    }
     ImGui::End();
 
 #if DEBUG
-    auto window_flags = SetWindowPos(1);
+    auto window_flags = SetWindowPos(3);
+    ImGui::SetNextWindowBgAlpha(0.5f);
     window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize |
         ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-    ImGui::Begin("Debug", nullptr, window_flags);
+    if (ImGui::Begin("Debug", nullptr, window_flags))
+    {
+        auto stats = Hazel::Renderer2D::GetStats();
+        ImGui::Text("Renderer2D Stats:");
+        ImGui::Text("  Draw Calls: %d", stats.DrawCalls);
+        ImGui::Text("  Quads: %d", stats.QuadCount);
+        ImGui::Text("  Vertices: %d", stats.GetTotalVertexCount());
+        ImGui::Text("  Indices: %d", stats.GetTotalIndexCount());
 
-    auto stats = Hazel::Renderer2D::GetStats();
-    ImGui::Text("Renderer2D Stats:");
-    ImGui::Text("  Draw Calls: %d", stats.DrawCalls);
-    ImGui::Text("  Quads: %d", stats.QuadCount);
-    ImGui::Text("  Vertices: %d", stats.GetTotalVertexCount());
-    ImGui::Text("  Indices: %d", stats.GetTotalIndexCount());
+        ImGui::Separator();
 
-    ImGui::Separator();
+        ImGui::Text("Objects Stats:");
+        ImGui::Text("  objectCount: %d", objectManager->GetObjectCount());
 
-    ImGui::Text("Objects Stats:");
-    ImGui::Text("  objectCount: %d", objectManager->GetObjectCount());
+        ImGui::Separator();
 
-    ImGui::Separator();
+        ImGui::Text("Physics Stats:");
+        ImGui::Text("  objectCount: %d", objectManager->GetPhysicsMgr()->GetObjectCount());
+        ImGui::Text("  bodyCount: %d", objectManager->GetPhysicsMgr()->GetPhysicsWorld()->GetBodyCount());
+        ImGui::Text("  GetContactCount: %d", objectManager->GetPhysicsMgr()->GetPhysicsWorld()->GetContactCount());
+        ImGui::Text("  GetJointCount: %d", objectManager->GetPhysicsMgr()->GetPhysicsWorld()->GetJointCount());
+        ImGui::Text("  GetProxyCount: %d", objectManager->GetPhysicsMgr()->GetPhysicsWorld()->GetProxyCount());
+        ImGui::Text("  GetContactCount: %d", objectManager->GetPhysicsMgr()->GetPhysicsWorld()->GetSubStepping());
 
-    ImGui::Text("Physics Stats:");
-    ImGui::Text("  objectCount: %d", objectManager->GetPhysicsMgr()->GetObjectCount());
-    ImGui::Text("  bodyCount: %d", objectManager->GetPhysicsMgr()->GetPhysicsWorld()->GetBodyCount());
-    ImGui::Text("  GetContactCount: %d", objectManager->GetPhysicsMgr()->GetPhysicsWorld()->GetContactCount());
-    ImGui::Text("  GetJointCount: %d", objectManager->GetPhysicsMgr()->GetPhysicsWorld()->GetJointCount());
-    ImGui::Text("  GetProxyCount: %d", objectManager->GetPhysicsMgr()->GetPhysicsWorld()->GetProxyCount());
-    ImGui::Text("  GetContactCount: %d", objectManager->GetPhysicsMgr()->GetPhysicsWorld()->GetSubStepping());
+        ImGui::Separator();
 
-    ImGui::Separator();
+        ImGui::Text("Stats:");
+        ImGui::Text("  FPS: %.0f", (avg_fps));
+        ImGui::Text("  deltaTime: %.2f", (1.0f / (avg_fps * 0.001f)));
 
-    ImGui::Text("Stats:");
-    ImGui::Text("  FPS: %.0f", (avg_fps));
-    ImGui::Text("  deltaTime: %.2f", (1.0f / (avg_fps * 0.001f)));
+        ImGui::Separator();
 
-    ImGui::Separator();
+        ImGui::Text("Player:");
+        ImGui::Text("  speed: %.2f", (player->speed * 10));
+        ImGui::Text("  grounded: %d", (player->grounded));
+        ImGui::Text("  wallLeft: %d", (player->wallLeft));
+        ImGui::Text("  wallRight: %d", (player->wallRight));
+        ImGui::Text("  ceiling: %d", (player->ceiling));
+        ImGui::Text("  inside: %d", (player->inside));
+        ImGui::Text("  velocity: %.1f, %.1f", player->GetBody()->GetLinearVelocity().x, player->GetBody()->GetLinearVelocity().y);
+        ImGui::Text("  damping: %.1f", player->GetBody()->GetLinearDamping());
 
-    ImGui::Text("Player:");
-    ImGui::Text("  speed: %.2f", (player->speed * 10));
-    ImGui::Text("  grounded: %d", (player->grounded));
-    ImGui::Text("  wallLeft: %d", (player->wallLeft));
-    ImGui::Text("  wallRight: %d", (player->wallRight));
-    ImGui::Text("  ceiling: %d", (player->ceiling));
-    ImGui::Text("  inside: %d", (player->inside));
-    ImGui::Text("  velocity: %.1f, %.1f", player->GetBody()->GetLinearVelocity().x, player->GetBody()->GetLinearVelocity().y);
-    ImGui::Text("  damping: %.1f", player->GetBody()->GetLinearDamping());
+        glm::vec3 ctr = m_CameraController.GetCameraPosition();
+        auto zoom = m_CameraController.GetZoomLevel();
+        ImGui::Text("  cam.y: %.1f", (ctr.y));
+        ImGui::Text("  zoom: %.1f", (zoom));
 
-    glm::vec3 ctr = m_CameraController.GetCameraPosition();
-    ImGui::Text("  cam.y: %.1f", (ctr.y));
-    ImGui::Text("  player.y: %.1f", (player->GetPosition().y));
-    auto lavaPos = lava->GetPosition({ 0.5f, 0.5f });
-    ImGui::Text("  lava.y: %.1f", (lavaPos.y));
+        ImGui::Text("  player.y: %.1f", (player->GetPosition().y));
+        auto lavaPos = lava->GetPosition({ 0.5f, 0.5f });
+        ImGui::Text("  lava.y: %.1f", (lavaPos.y));
 
 
-    ImGui::Separator();
+        ImGui::Separator();
 
-    ImGui::Text("Misc:");
-    ImGui::Text("  oneWayPlatforms: %d", (objectManager->GetPhysicsMgr()->oneWayPlatforms));
-    ImGui::Text("  m_numFootContacts: %d", (objectManager->GetPhysicsMgr()->m_numFootContacts));
+        ImGui::Text("Misc:");
+        ImGui::Text("  oneWayPlatforms: %d", (objectManager->GetPhysicsMgr()->oneWayPlatforms));
+        ImGui::Text("  m_numFootContacts: %d", (objectManager->GetPhysicsMgr()->m_numFootContacts));
 
-    //ImGui::ColorEdit4("Square Color", glm::value_ptr(m_SquareColor));
+        //ImGui::ColorEdit4("Square Color", glm::value_ptr(m_SquareColor));
+    }
     ImGui::End();
 #endif
 }

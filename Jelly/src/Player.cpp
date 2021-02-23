@@ -204,127 +204,6 @@ bool IsKeyPressed(Hazel::KeyCode key, Hazel::KeyCode alt)
         || Hazel::Input::IsKeyPressed(alt);
 }
 
-void Player::UpdateMove(b2Vec2& vel)
-{
-    float mass = GetBody()->GetMass();
-
-    float jumpDeltaTime = abs(time - lastJumpTime);
-    float insideDeltaTime = abs(time - lastInsideTime);
-
-    bool airborne = inside ||
-        (!grounded && !wallLeft && !wallRight && !ceiling);
-
-    float move_pwr_scale = grounded ? 1.0f :
-        fmax(airborne ? 0 : MOVE_AIR_COLLDING,
-             fmin(pow3(fmin(1.0f, speed / MOVE_AIR_MOMENTUM)) * MOVE_AIR, MOVE_AIR));
-
-    float move_falloff = 1.0f + fmax(speed - MOVE_FALLOFF, 0.0f) * MOVE_FALLOFF_POWER;
-    //move_falloff = 1.0f;
-
-    float power = (mass / move_falloff) * move_pwr_scale;
-
-    // _JUMP vel.y:  0.0 | 3.4 | 4.2
-    bool allowJump = //!inside &&  
-        vel.y < 4.5f &&
-        (grounded || wallLeft || wallRight); // || !ceiling)
-
-    if (allowJump && (jumpDeltaTime > MOVE_JUMP_TIME))
-    {
-        if (IsKeyPressed(Hazel::Key::Up, Hazel::Key::W))
-        {
-            //if(grounded) DBG_OUTPUT("_JUMP %.1f", vel.y);
-
-            float velup = clamp01(vel.y); // 1 when going up
-            float veldn = clamp01(-vel.y); // 1 when going down
-
-            float opposite = (1.0f - veldn * 0.8f); // smaller when going down
-
-            if (!inside && grounded && vel.y < MOVE_JUMP_UP * 0.85f)
-            {
-                float extend = (1.0f + velup * 0.2f); // larger when going up
-                float limitjump = (lastInsideY <= posy ? clamp01(insideDeltaTime / 200.0f) : 1.0f);
-                // *clamp01(jumpDeltaTime / (MOVE_JUMP_TIME * 2));
-                float jumpvel = max(vel.y, MOVE_JUMP_UP * opposite * extend * limitjump);
-                if (jumpvel - vel.y > MOVE_JUMP_UP * 0.1f)
-                {
-                    Jump(vel.x, jumpvel);
-                    lastJumpTime = time;
-                    if (velup < 0.5f) PlayJumpSound(0);
-                    else PlayJumpSound(1);
-                }
-            }
-            else
-            {
-                float reduce = (1.0f - velup * 0.4f); // smaller when going up
-
-                if (wallLeft)
-                {
-                    auto force = GetBody()->GetForce();
-                    force.x *= 0.3f;
-                    GetBody()->SetForce(force);
-
-                    Jump(MOVE_WALLJUMP_SIDE * reduce, MOVE_WALLJUMP_UP * opposite);
-                    lastJumpTime = time;
-                    if (veldn < 0.5f) PlayJumpSound(0);
-                    else PlayJumpSound(2);
-                }
-                if (wallRight)
-                {
-                    auto force = GetBody()->GetForce();
-                    force.x *= 0.3f;
-                    GetBody()->SetForce(force);
-
-                    Jump(-MOVE_WALLJUMP_SIDE * reduce, MOVE_WALLJUMP_UP * opposite);
-                    lastJumpTime = time;
-                    if (veldn < 0.5f) PlayJumpSound(0);
-                    else PlayJumpSound(2);
-                }
-            }
-        }
-    }
-
-    bool keyleft = IsKeyPressed(Hazel::Key::Left, Hazel::Key::A);
-    if (keyleft)
-    {
-#if TEST
-        float limit = clamp01(MOVE_SIDE_LIMIT + vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME);
-        moveX(-power * limit * MOVE_SIDE);
-#else
-        float opposite = !grounded ? 1.0f : 0.05f + pow2(clamp01(-(vel.x / MOVE_SIDE_LIMIT)));
-        float limit = clamp01(MOVE_SIDE + vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME) * opposite;
-        MoveX(-fmin(power * limit * MOVE_SIDE, MOVE_SIDE_LIMIT));
-#endif
-        this->width = std::abs(width);
-    }
-
-    bool keyright = IsKeyPressed(Hazel::Key::Right, Hazel::Key::D);
-    if (keyright)
-    {
-#if TEST
-        float limit = clamp01(MOVE_SIDE_LIMIT - vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME);
-        moveX(power * limit * MOVE_SIDE);
-#else
-        float opposite = !grounded ? 1.0f : 0.05f + pow2(clamp01((vel.x / MOVE_SIDE_LIMIT)));
-        float limit = clamp01(MOVE_SIDE - vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME) * opposite;
-        MoveX(fmin(power * limit * MOVE_SIDE, MOVE_SIDE_LIMIT));
-#endif
-        this->width = -std::abs(width);
-    }
-
-    if (IsKeyPressed(Hazel::Key::Down, Hazel::Key::S))
-    {
-        Move(0.f, -1.f);
-    }
-
-    //if (!jumpanim)
-    //{
-    //    if (key_left != keyleft) animtime = 0;
-    //    if (key_right != keyright) animtime = 0;
-    //}
-    key_left = keyleft;
-    key_right = keyright;
-}
-
 void Player::UpdateCollisions(b2Vec2& vel)
 {
     auto go_pos = GetPosition();
@@ -410,8 +289,132 @@ void Player::UpdateCollisions(b2Vec2& vel)
         contacts.push_back(cd);
 #endif
 
-        //vel = clipVector(vel, normal, 0.5f);
+        vel = clipVector(vel, normal, 0.33f);
     }
+}
+
+void Player::UpdateMove(b2Vec2& vel)
+{
+    float mass = GetBody()->GetMass();
+
+    float jumpDeltaTime = abs(time - lastJumpTime);
+
+    bool airborne = inside ||
+        (!grounded && !wallLeft && !wallRight && !ceiling);
+
+    float move_pwr_scale = grounded ? 1.0f :
+        fmax(airborne ? 0 : MOVE_AIR_COLLDING,
+             fmin(pow3(fmin(1.0f, speed / MOVE_AIR_MOMENTUM)) * MOVE_AIR, MOVE_AIR));
+
+    float move_falloff = 1.0f + fmax(speed - MOVE_FALLOFF, 0.0f) * MOVE_FALLOFF_POWER;
+    //move_falloff = 1.0f;
+
+    float power = (mass / move_falloff) * move_pwr_scale;
+
+    // _JUMP vel.y:  0.0 | 3.4 | 4.2
+    bool allowJump = //!inside &&  
+        vel.y < 4.5f &&
+        (grounded || wallLeft || wallRight); // || !ceiling)
+
+    bool allowUpJump = allowJump && !inside;
+    if (!allowUpJump && inside && grounded && !wallLeft && !wallRight && abs(vel.y) < 0.01f)
+        allowUpJump = true;
+
+    if (allowJump && (jumpDeltaTime > MOVE_JUMP_TIME))
+    {
+        if (IsKeyPressed(Hazel::Key::Up, Hazel::Key::W))
+        {
+            //if(grounded) DBG_OUTPUT("_JUMP %.1f", vel.y);
+
+            float velup = clamp01(vel.y); // 1 when going up
+            float veldn = clamp01(-vel.y); // 1 when going down
+
+            float opposite = (1.0f - veldn * 0.8f); // smaller when going down
+
+            if (allowUpJump && grounded && vel.y < MOVE_JUMP_UP * 0.85f)
+            {
+                float extend = (1.0f + velup * 0.2f); // larger when going up
+                float limitjump = (lastInsideY <= posy ? clamp01(abs(time - lastInsideTime) / 200.0f) : 1.0f);
+                // *clamp01(jumpDeltaTime / (MOVE_JUMP_TIME * 2));
+                float jumpvel = max(vel.y, MOVE_JUMP_UP * opposite * extend * limitjump);
+                if (jumpvel - vel.y > MOVE_JUMP_UP * 0.1f)
+                {
+                    Jump(vel.x, jumpvel);
+                    lastJumpTime = time;
+                    if (velup < 0.5f) PlayJumpSound(0);
+                    else PlayJumpSound(1);
+                }
+            }
+            else
+            {
+                float reduce = (1.0f - velup * 0.4f); // smaller when going up
+
+                if (wallLeft)
+                {
+                    auto force = GetBody()->GetForce();
+                    force.x *= 0.3f;
+                    GetBody()->SetForce(force);
+
+                    Jump(MOVE_WALLJUMP_SIDE * reduce, MOVE_WALLJUMP_UP * opposite);
+                    lastJumpTime = time;
+                    if (veldn < 0.5f) PlayJumpSound(0);
+                    else PlayJumpSound(2);
+                }
+                if (wallRight)
+                {
+                    auto force = GetBody()->GetForce();
+                    force.x *= 0.3f;
+                    GetBody()->SetForce(force);
+
+                    Jump(-MOVE_WALLJUMP_SIDE * reduce, MOVE_WALLJUMP_UP * opposite);
+                    lastJumpTime = time;
+                    if (veldn < 0.5f) PlayJumpSound(0);
+                    else PlayJumpSound(2);
+                }
+            }
+        }
+    }
+
+    bool keyleft = IsKeyPressed(Hazel::Key::Left, Hazel::Key::A);
+    if (keyleft)
+    {
+#if TEST
+        float limit = clamp01(MOVE_SIDE_LIMIT + vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME);
+        moveX(-power * limit * MOVE_SIDE);
+#else
+        float opposite = !grounded ? 1.0f : 0.05f + pow2(clamp01(-(vel.x / MOVE_SIDE_LIMIT)));
+        float limit = clamp01(MOVE_SIDE + vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME) * opposite;
+        MoveX(-fmin(power * limit * MOVE_SIDE, MOVE_SIDE_LIMIT));
+#endif
+        this->width = std::abs(width);
+    }
+
+    bool keyright = IsKeyPressed(Hazel::Key::Right, Hazel::Key::D);
+    if (keyright)
+    {
+#if TEST
+        float limit = clamp01(MOVE_SIDE_LIMIT - vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME);
+        moveX(power * limit * MOVE_SIDE);
+#else
+        float opposite = !grounded ? 1.0f : 0.05f + pow2(clamp01((vel.x / MOVE_SIDE_LIMIT)));
+        float limit = clamp01(MOVE_SIDE - vel.x) * clamp01(jumpDeltaTime / JUMP_NOXMOVE_TIME) * opposite;
+        MoveX(fmin(power * limit * MOVE_SIDE, MOVE_SIDE_LIMIT));
+#endif
+        this->width = -std::abs(width);
+    }
+
+    if (IsKeyPressed(Hazel::Key::Down, Hazel::Key::S))
+    {
+        Move(0.f, -1.f);
+    }
+
+    //if (!jumpanim)
+    //{
+    //    if (key_left != keyleft) animtime = 0;
+    //    if (key_right != keyright) animtime = 0;
+    //}
+    key_left = keyleft;
+    key_right = keyright;
 }
 
 void Player::MoveX(float power) const
@@ -549,6 +552,7 @@ void Player::Draw(int layer)
         const float amd = 0.1f;
         wm = wm * (clamp01(1 - anim_squish) * amd + (1-amd));
         hm = hm * (clamp01(anim_squish) * amd + 1.0f);
+        px -= width * clamp01(anim_squish) * amd * 0.25f;
 
 
         Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width * wm + sign(width) * sw, height * hm + sh }, fangle,

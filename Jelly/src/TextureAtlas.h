@@ -18,7 +18,7 @@ namespace Jelly
         TextureRef GetTextureRef() const { return texure; }
 
         std::vector<glm::vec4>& GetRects() { return rects; }
-        size_t RectCount() const { return rects.size(); }
+        int RectCount() const { return (int)rects.size(); }
         glm::vec4& GetRect(int i) { return rects[i]; }
 
 

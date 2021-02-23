@@ -65,7 +65,7 @@ namespace Jelly
         unsigned int avg_counter = 0;
         float avg_fps = 0;
 
-        ParticleProps m_Particle;
+        ParticleProps lavaParticle;
         ParticleSystem m_ParticleSystem;
     };
 }
