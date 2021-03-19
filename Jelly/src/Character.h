@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GameObject.h"
 #include "PhysicsManager.h"
 #include "GameObject.h"
 #include "ParticleSystem.h"
@@ -7,23 +8,33 @@
 
 namespace Jelly
 {
-    class Player :
+    class Character :
         public GameObject
     {
     public:
-        Player(float x, float y, float size, float scale, PhysicsManager* physicsMgr);
-        ~Player();
+        Character(float x, float y, float size, float scale, PhysicsManager* physicsMgr);
+        ~Character();
 
 
-        void Draw(int layer) override;
+        typedef struct Input
+        {
+            Input(bool _left, bool _right, bool _up, bool _down)
+            {
+                this->left = _left; this->right = _right; this->down = _down; this->up = _up;
+            }
+            bool left; bool right; bool down; bool up;
+        } Input;
+
+        virtual void Draw(int layer) override;
 #if DEBUG
-        void DebugDraw() override;
+        virtual void DebugDraw() override;
 #endif
 
-        void Update(float dt) override;
+        virtual void Update(float dt) override;
 
-        void UpdateCollisions(b2Vec2& vel);
-        void UpdateMove(b2Vec2& vel);
+        virtual void UpdateCollisions(b2Vec2& vel);
+        virtual Input UpdateInput();
+        virtual void UpdateMove(Input input, b2Vec2& vel);
 
 
         void MoveX(float power) const;
@@ -48,6 +59,8 @@ namespace Jelly
         bool key_left = false;
         bool key_right = false;
 
+        glm::vec2 psc_pos;
+        glm::vec2 psc_normal;
 #if DEBUG
         typedef struct ContactData
         {
@@ -65,8 +78,6 @@ namespace Jelly
 
         } ContactData;
         std::vector<ContactData> contacts;
-        glm::vec2 psc_pos;
-        glm::vec2 psc_normal;
 #endif
 
     protected:

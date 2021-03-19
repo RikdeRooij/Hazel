@@ -7,12 +7,12 @@
 
 namespace Jelly
 {
-    class Player :
+    class Enemy :
         public GameObject
     {
     public:
-        Player(float x, float y, float size, float scale, PhysicsManager* physicsMgr);
-        ~Player();
+        Enemy(float x, float y, float size, float scale, PhysicsManager* physicsMgr);
+        ~Enemy();
 
 
         void Draw(int layer) override;
@@ -48,6 +48,12 @@ namespace Jelly
         bool key_left = false;
         bool key_right = false;
 
+        bool ai_jump = false;
+        bool ai_move_left = false;
+        bool ai_move_right = false;
+
+        glm::vec2 psc_pos;
+        glm::vec2 psc_normal;
 #if DEBUG
         typedef struct ContactData
         {
@@ -65,8 +71,6 @@ namespace Jelly
 
         } ContactData;
         std::vector<ContactData> contacts;
-        glm::vec2 psc_pos;
-        glm::vec2 psc_normal;
 #endif
 
     protected:

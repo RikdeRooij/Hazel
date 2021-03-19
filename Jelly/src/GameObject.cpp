@@ -35,7 +35,7 @@ GameObject::GameObject(b2Body* bd, float w, float h, glm::vec4 color) : GameObje
     width = w;
     height = h;
 
-    this->origin = { 0.5f, 0.5f };
+    this->m_origin = { 0.5f, 0.5f };
     this->clr = color;
 }
 
@@ -48,7 +48,7 @@ GameObject::GameObject(TextureRef tex, glm::vec2 pos, glm::vec2 size, glm::vec2 
     width = size.x;
     height = size.y;
     this->tex = tex;
-    this->origin = origin;
+    this->m_origin = origin;
     this->clr = { 1, 1, 1, 1 };
 }
 
@@ -66,7 +66,7 @@ GameObject::GameObject(b2Body* bd, TextureRef tex, glm::vec2 size, glm::vec2 ori
     width = size.x;
     height = size.y;
     this->tex = tex;
-    this->origin = origin;
+    this->m_origin = origin;
     this->clr = { 1, 1, 1, 1 };
 }
 
@@ -79,17 +79,17 @@ glm::vec2 GameObject::GetPosition() const
 {
     //if(m_body) return glm::vec2(m_body->GetPosition().x * RATIO, m_body->GetPosition().y * RATIO);
     //return glm::vec2(posx, posy);
-    float px = posx + abs(width) * (0.5f - origin.x);
-    float py = posy + height * (0.5f - origin.y);
+    float px = posx + abs(width) * (0.5f - m_origin.x);
+    float py = posy + height * (0.5f - m_origin.y);
     return glm::vec2(px, py);
 }
 
 glm::vec2 GameObject::GetPosition(glm::vec2 origin) const
 {
-    //if(m_body) return glm::vec2(m_body->GetPosition().x * RATIO, m_body->GetPosition().y * RATIO);
-    //return glm::vec2(posx, posy);
-    float px = posx + abs(width) * (0.5f - origin.x);
-    float py = posy + height * (0.5f - origin.y);
+    //float px = posx + abs(width) * (0.5f - origin.x);
+    //float py = posy + height * (0.5f - origin.y);
+    float px = posx + abs(width) * (0.5f - m_origin.x) + abs(width) * (0.5f - origin.x);
+    float py = posy - height * (-1 + m_origin.y + origin.y);
     return glm::vec2(px, py);
 }
 
@@ -119,8 +119,8 @@ void GameObject::Draw(int layer)
     //float px = posx - abs(width) * 0.5f + origin.x;
     //float py = posy - height * 0.5f + origin.y;
 
-    float px = posx + abs(width) * (0.5f - origin.x);
-    float py = posy + height * (0.5f - origin.y);
+    float px = posx + abs(width) * (0.5f - m_origin.x);
+    float py = posy + height * (0.5f - m_origin.y);
 
 
     auto z = -0.99f + (static_cast<float>(type) / static_cast<float>(Objects::MAX_COUNT) * 0.5f);
@@ -130,4 +130,6 @@ void GameObject::Draw(int layer)
         Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width, height }, angle, tex.Get(), tex_tiling, tex_offset, clr);
     else
         Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width, height }, angle, clr);
+
+    //Hazel::Renderer2D::DrawRotatedQuad({ posx, posy, z +0.001f }, { 0.2f, 0.2f }, angle, { 1,1,1,1 });
 }

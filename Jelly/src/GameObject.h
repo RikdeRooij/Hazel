@@ -22,6 +22,7 @@ namespace Jelly
             Background,
 
             Player,
+            Enemy,
             Object,
 
             Ground,
@@ -58,6 +59,7 @@ namespace Jelly
 
         float GameObject::GetHeight() const { return this->height; }
         float GameObject::GetWidth() const { return this->width; }
+        glm::vec2 GameObject::GetSize() const { return  glm::vec2(this->width, this->height); }
 
         virtual void Die();
 
@@ -90,6 +92,10 @@ namespace Jelly
 
         virtual void Draw(int layer);
 
+#if DEBUG
+        virtual void DebugDraw() {}
+#endif
+
         Objects::Type type = Objects::Unknown;
 
         bool dontDestroy;
@@ -108,7 +114,7 @@ namespace Jelly
         float angle;
         float width;
         float height;
-        glm::vec2 origin;
+        glm::vec2 m_origin;
 
         glm::vec4 clr = { 1.0f, 1.0f, 1.0f, 1.0f };
         TextureRef tex;

@@ -67,10 +67,11 @@ void JellyGame::StartGame()
 
     float startX =
 #if DEBUG
-        -250;
+        -150;
 #else
         0;
 #endif
+     objectManager->CreateEnemy(-startX, 250, 50);
     this->player = objectManager->CreatePlayer(startX, 0, 50);
 
     this->lava = objectManager->CreateLava(0, -800, 600 * 4, 200 * 4);
@@ -112,7 +113,7 @@ glm::vec2 UpdateLava(GameObject* lava, float dt, float viewY)
     viewY -= 3.f;
 #endif
     lava->Update(dt);
-    glm::vec2 lavaPos = lava->GetPosition({ 0.5f, 0.5f });
+    glm::vec2 lavaPos = lava->GetPosition({ 0.5f, 0.05f });
 
     float lavaAddSpeed = 0;
     if (lavaPos.y < viewY - (LAVA_MAX_DIST * LVL_SCALE))
@@ -322,12 +323,10 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
         {
             Hazel::Renderer2D::BeginScene(m_CameraController.GetCamera());
 
-            auto cds = player->contacts;
-            for (std::vector<struct Player::ContactData>::iterator it = cds.begin(); it != cds.end(); ++it)
-            {
-                glm::vec4 dbgcolor2 = (*it).down ? glm::vec4(0, 1, 0, 1) : ((*it).up ? glm::vec4(1, 0, 0, 1) : glm::vec4(1, 1, 0, 1));
-                DebugDraw::DrawRay((*it).pos, (*it).normal, dbgcolor2);
-            }
+            auto objectList = objectManager->GetObjectList();
+            for (std::list<GameObject*>::iterator iter = objectList.begin(); iter != objectList.end(); ++iter)
+                (*iter)->DebugDraw();
+            player->DebugDraw();
 
             const float epsilon = 0.1f;
             //auto plyr_pos = player->GetBody()->GetPosition();
@@ -361,13 +360,18 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
             }
 
 
-             glm::vec2 lavaPos = lava->GetPosition({ 0.5f, 0.5f });
+             glm::vec2 lavaPos = lava->GetPosition({ 0.5f, 0.05f });
              auto ppos = lavaPos;
              auto psize = glm::vec2(PARTICLES_DX * .5f, PARTICLES_DY * .5f);
              ppos.y = ppos.y - (psize.y + 0.08f);
              
              //DebugDraw::DrawLine(ppos - psize, ppos + psize, { 1, 1, 0, 1 });
              DebugDraw::DrawLineRect(ppos - psize, ppos + psize, { 1, 1, 0, 1 });
+             //DebugDraw::DrawLine(lavaPos, lavaPos + lava->GetSize() * .5f, { 1, 0, 1, 1 });
+
+
+             DebugDraw::DrawLine(lava->GetPosition({ 0.0f, 0.0f }), lava->GetPosition({ 1.f, 1.f }), { 1, 0, 1, 1 });
+             DebugDraw::DrawLine(lava->GetPosition(), lava->GetPosition({ 0.0f, 0.0f }), { 0, 1, 0, 1 });
 
             Hazel::Renderer2D::EndScene();
         }
@@ -484,7 +488,7 @@ void JellyGame::OnImGuiRender()
         ImGui::Text("  zoom: %.1f", (zoom));
 
         ImGui::Text("  player.y: %.1f", (player->GetPosition().y));
-        auto lavaPos = lava->GetPosition({ 0.5f, 0.5f });
+        auto lavaPos = lava->GetPosition({ 0.5f, 0.05f });
         ImGui::Text("  lava.y: %.1f", (lavaPos.y));
 
 

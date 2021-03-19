@@ -319,13 +319,19 @@ void PhysicsManager::BeginContact(b2Contact* contact)
 
     if (fixtureA->IsSensor() || fixtureB->IsSensor())
     {
-        if (goA->type == Objects::Player && goB && (goB->type == Objects::Lava || goB->type == Objects::SawBlade || goB->type == Objects::Spike))
+        if (goA && goA->type == Objects::Player)
         {
-            goA->Die();
+            if (goB && (goB->type == Objects::Lava || goB->type == Objects::SawBlade || goB->type == Objects::Spike))
+            {
+                goA->Die();
+            }
         }
-        if (goB->type == Objects::Player && goA && (goA->type == Objects::Lava || goA->type == Objects::SawBlade || goA->type == Objects::Spike))
+        if (goB && goB->type == Objects::Player)
         {
-            goB->Die();
+            if (goA && (goA->type == Objects::Lava || goA->type == Objects::SawBlade || goA->type == Objects::Spike))
+            {
+                goB->Die();
+            }
         }
     }
 

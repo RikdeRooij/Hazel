@@ -3,6 +3,7 @@
 #include <sstream>     // std::basic_stringstream, std::basic_istringstream, std::basic_ostringstream class templates and several typedefs
 
 #include <Windows.h>   // OutputDebugString, FormatMessage, ModuleFilePath...
+#include "Enemy.h"
 
 using namespace Jelly;
 
@@ -130,8 +131,24 @@ Player* ObjectManager::CreatePlayer(float x, float y, float size)
     return player;
 }
 
+Enemy* ObjectManager::CreateEnemy(float x, float y, float size)
+{
+    Enemy* enemy = new Enemy(x * LVL_SCALE, y * LVL_SCALE, size * LVL_SCALE, LVL_SCALE, physicsMgr);
+    enemy->type = Objects::Enemy;
+    enemy->SetDrawLayer(1);
+    enemy->SetColor({ 1.f, 0.3f, 0.3f, 1.f });
+
+    DBG_OUTPUT("Added: %s %s", DBG_GM_GO(enemy), DBG_PM_BODY(enemy->GetBody(), "Enemy").c_str());
+    objectList.push_back(enemy);
+    return enemy;
+}
+
 GameObject* ObjectManager::CreateLava(float x, float y, float w, float h)
 {
+    auto ctrx = .5f;
+    auto ctry = 1.f;
+    auto ctry_off = 0.06f;
+
     b2BodyDef bodyDef;
     bodyDef.type = b2BodyType::b2_kinematicBody;
     bodyDef.position.Set(x*UNRATIO * LVL_SCALE, y*UNRATIO * LVL_SCALE);
@@ -139,7 +156,8 @@ GameObject* ObjectManager::CreateLava(float x, float y, float w, float h)
     b2PolygonShape shape;
     //shape.SetAsBox(w*0.5f*UNRATIO, h*0.5f*UNRATIO);
     //shape.SetAsBox(0.0f, h*-0.5f*UNRATIO * LVL_SCALE);
-    shape.SetAsBox(w*0.5f*UNRATIO* LVL_SCALE, h*0.5f*UNRATIO* LVL_SCALE, { 0.0f, h*-0.5f*UNRATIO * LVL_SCALE }, 0.0f);
+    shape.SetAsBox(w * 0.5f * UNRATIO * LVL_SCALE, h * 0.5f * UNRATIO * LVL_SCALE,
+                   { w * (0.5f - ctrx) * UNRATIO * LVL_SCALE, h * (0.5f - ctry) * UNRATIO * LVL_SCALE }, 0.0f);
 
     b2FixtureDef fixtureDef = FixtureData::SENSOR;
     fixtureDef.shape = &shape;
@@ -154,7 +172,7 @@ GameObject* ObjectManager::CreateLava(float x, float y, float w, float h)
     //glm::vec2 texSize = { texture.get()->GetWidth(), texture.get()->GetHeight() };
     //GameObject* lava = new GameObject(physBody, texture, { texSize.x * LVL_SCALE, texSize.y * LVL_SCALE }, { .5f, 1.0f });
 
-    GameObject* lava = new GameObject(physBody, texture, { w * LVL_SCALE, h * LVL_SCALE }, { .5f, 0.94f });
+    GameObject* lava = new GameObject(physBody, texture, { w * LVL_SCALE, h * LVL_SCALE }, { ctrx, ctry - ctry_off });
     lava->SetTilingFactor({ w / h, 1.0f });
     lava->dontDestroy = true;
     lava->type = Objects::Lava;

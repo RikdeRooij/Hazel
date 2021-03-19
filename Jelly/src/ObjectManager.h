@@ -8,6 +8,7 @@
 
 #include <map>
 #include "Player.h"
+#include "Enemy.h"
 
 #define LVL_SCALE 0.01f
 //#define LVL_FIXTURE &FixtureData::DEFAULT // BOX2D
@@ -59,6 +60,7 @@ namespace Jelly
         auto GetObjectList() const { return objectList; }
 
         Player* CreatePlayer(float x, float y, float size);
+        Enemy* CreateEnemy(float x, float y, float size);
 
         GameObject* CreateLava(float x, float y, float w, float h);
 

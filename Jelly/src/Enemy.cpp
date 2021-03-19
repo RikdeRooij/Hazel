@@ -1,4 +1,4 @@
-#include "Player.h"
+#include "Enemy.h"
 #include "Hazel/Renderer/Renderer2D.h"
 #include "Hazel/Core/Input.h"
 #include <windows.h>
@@ -7,13 +7,14 @@
 #include "../vendor/tinyxml2/tinyxml2.h"
 #include "TextureAtlas.h"
 #include "DebugDraw.h"
+#include "../RaysCastCallback .h"
 #pragma comment(lib, "winmm.lib")
 
 using namespace Jelly;
 
 //#define TEST 1
 
-#define PM_SCALE 1.0f
+#define PM_SCALE 0.6f
 
 #define MOVE_SIDE (3.0f * PM_SCALE) // Horizontal (left-right) movement power
 #define MOVE_SIDE_LIMIT (4.0f * PM_SCALE) // Horizontal (left-right) movement limit
@@ -40,7 +41,20 @@ using namespace Jelly;
 #define GROUND_NORMAL 0.7f // max absolute normal.x to be considered ground. (acos(0.7) * (180/PI) = 45.6 degrees)
 
 
-Player::Player(float x, float y, float size, float scale, PhysicsManager* physicsMgr)
+
+void CreateSensor(b2Body* physBody, float size, float xsign)
+{
+    b2PolygonShape shape2;
+    auto s = b2Vec2(size * 0.5f * UNRATIO, size * 0.5f * UNRATIO);
+    auto ss = b2Vec2(size * 0.25f * UNRATIO, size * 0.25f * UNRATIO);
+    shape2.SetAsBox(ss.x, ss.y, { xsign * (s.x + ss.x + 0.1f * UNRATIO), -s.y }, 0);
+    b2FixtureDef fixtureDef2 = (FixtureData::SENSOR);
+    fixtureDef2.isSensor = true;
+    fixtureDef2.shape = &shape2;
+    physBody->CreateFixture(&fixtureDef2);
+}
+
+Enemy::Enemy(float x, float y, float size, float scale, PhysicsManager* physicsMgr)
 {
     dontDestroy = true;
 
@@ -51,7 +65,7 @@ Player::Player(float x, float y, float size, float scale, PhysicsManager* physic
     b2PolygonShape shape;
     shape.SetAsBox(size*0.5f*UNRATIO, size*0.5f*UNRATIO);
 
-    b2FixtureDef fixtureDef = FixtureData(1.0f, 0.2f, 0.45f, "Player");
+    b2FixtureDef fixtureDef = FixtureData(1.0f, 0.2f, 0.45f, "Enemy");
     fixtureDef.shape = &shape;
 
     b2Body* physBody = physicsMgr->GetPhysicsWorld()->CreateBody(&bodyDef);
@@ -64,6 +78,14 @@ Player::Player(float x, float y, float size, float scale, PhysicsManager* physic
     physBody->SetFixedRotation(true);
     //physBody->SetLinearDamping(MOVE_DAMPING);
     physBody->SetLinearDamping(0);
+
+    //b2CircleShape shape2;
+    //shape2.m_radius = (size*0.5f * UNRATIO);
+    //shape2.m_p = b2Vec2((-size)* UNRATIO, -size * 0.5f * UNRATIO);
+
+    //CreateSensor(physBody, size, -1);
+    //CreateSensor(physBody, size, 1);
+
 
     time = 0;
     lastJumpTime = 0;
@@ -105,12 +127,12 @@ Player::Player(float x, float y, float size, float scale, PhysicsManager* physic
     textureAtlas = TextureAtlas("assets/jelly_anim.xml");
 }
 
-Player::~Player()
+Enemy::~Enemy()
 {
 
 }
 
-void Player::Update(float dt)
+void Enemy::Update(float dt)
 {
     time += dt * 1000;
     animtime += dt;
@@ -160,52 +182,19 @@ void Player::Update(float dt)
     float damping = !inside && grounded ? MOVE_DAMPING : 0;
     GetBody()->SetLinearDamping(damping);
 
+    UpdateMove(vel);
 
-
-    if (Hazel::Input::BeginKeyPress(Hazel::Key::Slash))
+    if (dead && GetBody())
     {
-        debugMode = !debugMode;
-        //GetBody()->SetType(debugMode ? b2_kinematicBody : b2_dynamicBody);
-        GetBody()->SetGravityScale(debugMode ? 0.f : 1.f);
-    }
-
-    if (debugMode)
-    {
-        b2Vec2 impulse = b2Vec2(0, 0);
-
-        if (Hazel::Input::IsKeyPressed(Hazel::Key::Left))
-            impulse.x += -1;
-        if (Hazel::Input::IsKeyPressed(Hazel::Key::Right))
-            impulse.x += 1;
-        if (Hazel::Input::IsKeyPressed(Hazel::Key::Up))
-            impulse.y += 1;
-        if (Hazel::Input::IsKeyPressed(Hazel::Key::Down))
-            impulse.y += -1;
-
-        GetBody()->SetLinearVelocity(impulse);
-    }
-    else
-    {
-        UpdateMove(vel);
-
-        if (dead && GetBody())
-        {
-            this->height = -std::abs(height);
-            GetBody()->SetLinearVelocity(b2Vec2(0, 0));
-            GetBody()->SetAwake(false);
-        }
+        this->height = -std::abs(height);
+        GetBody()->SetLinearVelocity(b2Vec2(0, 0));
+        GetBody()->SetAwake(false);
     }
 
     GameObject::Update(dt);
 }
 
-bool IsKeyPressed(Hazel::KeyCode key, Hazel::KeyCode alt)
-{
-    return Hazel::Input::IsKeyPressed(key)
-        || Hazel::Input::IsKeyPressed(alt);
-}
-
-void Player::UpdateCollisions(b2Vec2& vel)
+void Enemy::UpdateCollisions(b2Vec2& vel)
 {
     auto go_pos = GetPosition();
 
@@ -217,9 +206,10 @@ void Player::UpdateCollisions(b2Vec2& vel)
 
 #if DEBUG
     contacts.clear();
+#endif
+
     psc_pos = { 0,0 };
     psc_normal = { 0,0 };
-#endif
     int ceCount = 0;
     for (b2ContactEdge* ce = GetBody()->GetContactList(); ce; ce = ce->next)
     {
@@ -290,16 +280,15 @@ void Player::UpdateCollisions(b2Vec2& vel)
 #if DEBUG
         ContactData cd = ContactData(avgPos, { normal.x, normal.y }, isGround, isUp);
         contacts.push_back(cd);
+#endif
         psc_pos.x += avgPos.x;
         psc_pos.y += avgPos.y;
         psc_normal.x += ctrDirVec.x;
         psc_normal.y += ctrDirVec.y;
-#endif
 
         vel = clipVector(vel, normal, 0.33f);
     }
 
-#if DEBUG
     if (ceCount > 0)
     {
         psc_pos /= (ceCount);
@@ -310,11 +299,47 @@ void Player::UpdateCollisions(b2Vec2& vel)
     {
         psc_pos = go_pos;
     }
-#endif
+
+    RaysCastCallback callback;
+
+    // left cast
+    callback = RaysCastCallback::RayCast({ go_pos.x, go_pos.y }, { go_pos.x - .8f, go_pos.y - 0.5f });
+    if (!callback.m_hit)
+        psc_normal.x = max(psc_normal.x, 0.2f); // move right
+    else if (abs(callback.m_normal.x) > 0.5f)
+        psc_normal.x = max(psc_normal.x, 0.2f); // move right
+
+    // right cast
+    callback = RaysCastCallback::RayCast({ go_pos.x, go_pos.y }, { go_pos.x + .8f, go_pos.y - 0.5f });
+    if (!callback.m_hit)
+        psc_normal.x = min(psc_normal.x, -0.2f); // move left
+    else if (abs(callback.m_normal.x) > 0.5f)
+        psc_normal.x = min(psc_normal.x, -0.2f); // move left
 }
 
-void Player::UpdateMove(b2Vec2& vel)
+void Enemy::UpdateMove(b2Vec2& vel)
 {
+    if (!grounded)
+    {   
+        ai_move_left = ai_move_right = false;
+    }
+    else if (!ai_move_left && !ai_move_right)
+    {
+        ai_move_left = Random::Float() > 0.5f;
+        ai_move_right = !ai_move_left;
+    }
+
+    if (ai_move_left && (psc_normal.x > 0.1f || psc_normal.x < -0.6f))
+    {
+        ai_move_left = false;
+        ai_move_right = true;
+    }
+    if (ai_move_right && (psc_normal.x < -0.1f || psc_normal.x > 0.6f))
+    {
+        ai_move_left = true;
+        ai_move_right = false;
+    }
+
     float mass = GetBody()->GetMass();
 
     float jumpDeltaTime = abs(time - lastJumpTime);
@@ -342,7 +367,7 @@ void Player::UpdateMove(b2Vec2& vel)
 
     if (allowJump && (jumpDeltaTime > MOVE_JUMP_TIME))
     {
-        if (IsKeyPressed(Hazel::Key::Up, Hazel::Key::W))
+        if (ai_jump)
         {
             //if(grounded) DBG_OUTPUT("_JUMP %.1f", vel.y);
 
@@ -392,10 +417,10 @@ void Player::UpdateMove(b2Vec2& vel)
                     else PlayJumpSound(2);
                 }
             }
-        }
-    }
+                }
+            }
 
-    bool keyleft = IsKeyPressed(Hazel::Key::Left, Hazel::Key::A);
+    bool keyleft = ai_move_left;
     if (keyleft)
     {
 #if TEST
@@ -409,7 +434,7 @@ void Player::UpdateMove(b2Vec2& vel)
         this->width = std::abs(width);
     }
 
-    bool keyright = IsKeyPressed(Hazel::Key::Right, Hazel::Key::D);
+    bool keyright = ai_move_right;
     if (keyright)
     {
 #if TEST
@@ -423,11 +448,6 @@ void Player::UpdateMove(b2Vec2& vel)
         this->width = -std::abs(width);
     }
 
-    if (IsKeyPressed(Hazel::Key::Down, Hazel::Key::S))
-    {
-        Move(0.f, -1.f);
-    }
-
     //if (!jumpanim)
     //{
     //    if (key_left != keyleft) animtime = 0;
@@ -437,7 +457,7 @@ void Player::UpdateMove(b2Vec2& vel)
     key_right = keyright;
 }
 
-void Player::MoveX(float power) const
+void Enemy::MoveX(float power) const
 {
     if (dead)
         return;
@@ -452,7 +472,7 @@ void Player::MoveX(float power) const
 #endif
 }
 
-void Player::Jump(float x, float power)
+void Enemy::Jump(float x, float power)
 {
     if (dead)
         return;
@@ -469,7 +489,7 @@ void Player::Jump(float x, float power)
     GetBody()->SetLinearVelocity(impulse);
 }
 
-void Player::Move(float dx, float dy) const
+void Enemy::Move(float dx, float dy) const
 {
     if (dead)
         return;
@@ -482,13 +502,13 @@ void Player::Move(float dx, float dy) const
     GetBody()->ApplyLinearImpulse(impulse, impulsePoint, true);
 }
 
-void Player::Explode()
+void Enemy::Explode()
 {
     m_Particle.Position = { posx , posy };
     ParticleSystem::S_Emit(100, m_Particle);
 }
 
-void Player::Die()
+void Enemy::Die()
 {
     if (dead)
         return;
@@ -504,12 +524,12 @@ void Player::Die()
     dead = true;
 }
 
-void Player::PlayJumpSound(int i) const
+void Enemy::PlayJumpSound(int i) const
 {
     PlaySoundA(format("assets/Sounds/jump%d.wav", (i + 1)).c_str(), nullptr, SND_FILENAME | SND_ASYNC);
 }
 
-void Player::Draw(int layer)
+void Enemy::Draw(int layer)
 {
     if (dontDraw)
         return;
@@ -533,8 +553,8 @@ void Player::Draw(int layer)
 
     float anim_land = clamp01(abs(lastLandTime - time) * 0.005f);
     float hm = anim_land * 0.3f + 0.7f;
-    py -= height * (1-hm) * .25f;
-    float wm = 1 +((1- anim_land) * 0.15f);
+    py -= height * (1 - hm) * .25f;
+    float wm = 1 + ((1 - anim_land) * 0.15f);
 
     float s = Interpolate::Hermite(0, 1, TextureAtlas::AnimTime((animtime + 1.5f) * anim_speed_breathe, 3.0f, true) / 3.0f);
     const float breathe = 0.04f;
@@ -554,7 +574,7 @@ void Player::Draw(int layer)
         auto  texRect = textureAtlas.AnimationRect(animtime * animspeed + 1, 6, acnt, false);
 
         Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width * wm + sign(width) * sw, height * hm + sh }, angle,
-                                           textureAtlas.GetTextureRef().Get(), 
+                                           textureAtlas.GetTextureRef().Get(),
                                            { texRect.z, texRect.w }, { texRect.x, texRect.y }, clr);
     }
     else if (textureAtlas.Valid())
@@ -570,7 +590,7 @@ void Player::Draw(int layer)
         //fangle = angle - width * anim_squish * 4;
 
         const float amd = 0.1f;
-        wm = wm * (clamp01(1 - anim_squish) * amd + (1-amd));
+        wm = wm * (clamp01(1 - anim_squish) * amd + (1 - amd));
         hm = hm * (clamp01(anim_squish) * amd + 1.0f);
         px -= width * clamp01(anim_squish) * amd * 0.25f;
 
@@ -590,7 +610,7 @@ void Player::Draw(int layer)
 }
 
 #if DEBUG
-void Player::DebugDraw()
+void Enemy::DebugDraw()
 {
     auto cds = this->contacts;
     for (std::vector<struct ContactData>::iterator it = cds.begin(); it != cds.end(); ++it)
@@ -601,5 +621,10 @@ void Player::DebugDraw()
 
     DebugDraw::DrawRay(this->GetPosition(), this->psc_normal, { 0,0,0,1 });
     DebugDraw::DrawLine(this->GetPosition({ 0.5f, 1 }), this->psc_pos, { 1,1,1,1 });
+
+
+    auto go_pos = GetPosition();
+    glm::vec2 target = glm::vec2(go_pos.x - 0.8f, go_pos.y - 0.4f);
+    DebugDraw::DrawLine(go_pos, target, { 1,0,1,1 });
 }
 #endif

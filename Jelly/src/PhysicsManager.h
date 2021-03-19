@@ -52,7 +52,7 @@ namespace Jelly
         PhysicsManager();
         virtual ~PhysicsManager();
 
-        b2World* GetPhysicsWorld() const { return physicsWorld; }
+        static b2World* GetPhysicsWorld() { return physicsWorld; }
         //std::list<b2Body*> getphysicsObjectList() const { return physicsObjectList; }
         auto GetObjectCount() const { return physicsObjectList.size(); }
 
