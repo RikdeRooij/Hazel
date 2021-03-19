@@ -71,7 +71,8 @@ void JellyGame::StartGame()
 #else
         0;
 #endif
-     objectManager->CreateEnemy(-startX, 250, 50);
+    
+    objectManager->CreateEnemy(-startX, 250, 50);
     this->player = objectManager->CreatePlayer(startX, 0, 50);
 
     this->lava = objectManager->CreateLava(0, -800, 600 * 4, 200 * 4);

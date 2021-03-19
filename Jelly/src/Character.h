@@ -2,7 +2,6 @@
 
 #include "GameObject.h"
 #include "PhysicsManager.h"
-#include "GameObject.h"
 #include "ParticleSystem.h"
 #include "TextureAtlas.h"
 
@@ -12,17 +11,20 @@ namespace Jelly
         public GameObject
     {
     public:
+        float PM_SCALE = 0.5f;
+
         Character(float x, float y, float size, float scale, PhysicsManager* physicsMgr);
         ~Character();
-
 
         typedef struct Input
         {
             Input(bool _left, bool _right, bool _up, bool _down)
             {
                 this->left = _left; this->right = _right; this->down = _down; this->up = _up;
+                this->update_move = true;
             }
             bool left; bool right; bool down; bool up;
+            bool update_move;
         } Input;
 
         virtual void Draw(int layer) override;
@@ -32,8 +34,8 @@ namespace Jelly
 
         virtual void Update(float dt) override;
 
-        virtual void UpdateCollisions(b2Vec2& vel);
         virtual Input UpdateInput();
+        virtual void UpdateCollisions(b2Vec2& vel);
         virtual void UpdateMove(Input input, b2Vec2& vel);
 
 

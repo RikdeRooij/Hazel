@@ -7,7 +7,6 @@
 #include "../vendor/tinyxml2/tinyxml2.h"
 #include "TextureAtlas.h"
 #include "DebugDraw.h"
-#include "../RaysCastCallback .h"
 #pragma comment(lib, "winmm.lib")
 
 using namespace Jelly;
@@ -15,7 +14,7 @@ using namespace Jelly;
 //#define TEST 1
 
 #ifndef PM_SCALE
-#define PM_SCALE 1.0f
+//#define PM_SCALE 0.5f
 #endif
 
 #define MOVE_SIDE (3.0f * PM_SCALE) // Horizontal (left-right) movement power
@@ -158,16 +157,24 @@ void Character::Update(float dt)
 
     Input input = UpdateInput();
 
-    UpdateMove(input, vel);
-
-    if (dead && GetBody())
+    if (input.update_move)
     {
-        this->height = -std::abs(height);
-        GetBody()->SetLinearVelocity(b2Vec2(0, 0));
-        GetBody()->SetAwake(false);
+        UpdateMove(input, vel);
+
+        if (dead && GetBody())
+        {
+            this->height = -std::abs(height);
+            GetBody()->SetLinearVelocity(b2Vec2(0, 0));
+            GetBody()->SetAwake(false);
+        }
     }
 
     GameObject::Update(dt);
+}
+
+Character::Input Character::UpdateInput()
+{
+    return Input(false, false, false, false);
 }
 
 void Character::UpdateCollisions(b2Vec2& vel)
@@ -275,27 +282,6 @@ void Character::UpdateCollisions(b2Vec2& vel)
     {
         psc_pos = go_pos;
     }
-
-    RaysCastCallback callback;
-
-    // left cast
-    callback = RaysCastCallback::RayCast({ go_pos.x, go_pos.y }, { go_pos.x - .8f, go_pos.y - 0.5f });
-    if (!callback.m_hit)
-        psc_normal.x = max(psc_normal.x, 0.2f); // move right
-    else if (abs(callback.m_normal.x) > 0.5f)
-        psc_normal.x = max(psc_normal.x, 0.2f); // move right
-
-    // right cast
-    callback = RaysCastCallback::RayCast({ go_pos.x, go_pos.y }, { go_pos.x + .8f, go_pos.y - 0.5f });
-    if (!callback.m_hit)
-        psc_normal.x = min(psc_normal.x, -0.2f); // move left
-    else if (abs(callback.m_normal.x) > 0.5f)
-        psc_normal.x = min(psc_normal.x, -0.2f); // move left
-}
-
-Character::Input Character::UpdateInput()
-{
-    return Input(false, false, false, false);
 }
 
 void Character::UpdateMove(Input input, b2Vec2& vel)
@@ -587,10 +573,5 @@ void Character::DebugDraw()
 
     DebugDraw::DrawRay(this->GetPosition(), this->psc_normal, { 0,0,0,1 });
     DebugDraw::DrawLine(this->GetPosition({ 0.5f, 1 }), this->psc_pos, { 1,1,1,1 });
-
-
-    auto go_pos = GetPosition();
-    glm::vec2 target = glm::vec2(go_pos.x - 0.8f, go_pos.y - 0.4f);
-    DebugDraw::DrawLine(go_pos, target, { 1,0,1,1 });
 }
 #endif
