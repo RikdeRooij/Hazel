@@ -3,14 +3,20 @@
 
 using namespace Jelly;
 
-Player::Player(float x, float y, float size, float scale, PhysicsManager* physicsMgr)
-    : Character(x,y,size,scale,physicsMgr)
+Player* Player::instance;
+
+Player::Player(b2Body* bd, TextureAtlas textureRef, float w, float h, float scale)
+    : Character(bd, textureRef, w, h, scale)
 {
     PM_SCALE = 1.0f;
+    isCharacter = true;
+    dontDestroy = true;
+    Player::instance = this;
 }
 
 Player::~Player()
 {
+    Player::instance = nullptr;
 }
 
 bool IsKeyPressed(Hazel::KeyCode key, Hazel::KeyCode alt)
@@ -32,6 +38,7 @@ Character::Input Player::UpdateInput()
         debugMode = !debugMode;
         //GetBody()->SetType(debugMode ? b2_kinematicBody : b2_dynamicBody);
         GetBody()->SetGravityScale(debugMode ? 0.f : 1.f);
+        GetBody()->SetLinearDamping(debugMode ? 8.f : 0.f);
     }
 
     if (debugMode)
@@ -47,7 +54,9 @@ Character::Input Player::UpdateInput()
         if (Hazel::Input::IsKeyPressed(Hazel::Key::Down))
             impulse.y += -1;
 
-        GetBody()->SetLinearVelocity(impulse);
+        //GetBody()->SetLinearVelocity(8.f * impulse);
+        GetBody()->SetLinearDamping(8.f);
+        GetBody()->ApplyForceToCenter(32.f * impulse, true);
 
         Input ninput = Input(false, false, false, false);
         ninput.update_move = false;

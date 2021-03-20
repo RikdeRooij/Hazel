@@ -82,6 +82,8 @@ namespace Jelly
         void UpdateLevel(float y);
 
         int RemoveObjectsBelow(float y);
+        static int Remove(GameObject* go);
+
         void UpdateStep(float dt);
         void UpdateObjects(float dt);
 

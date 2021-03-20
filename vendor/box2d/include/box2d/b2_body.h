@@ -472,6 +472,10 @@ private:
     float m_sleepTime;
 
     b2BodyUserData m_userData;
+
+#if DEBUG
+    public: const char* _debug = nullptr;
+#endif
 };
 
 inline b2BodyType b2Body::GetType() const

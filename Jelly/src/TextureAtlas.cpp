@@ -13,6 +13,18 @@ TextureAtlas::TextureAtlas(std::string path)
     this->texure = LoadXML(path, this->rects);
 }
 
+TextureAtlas::TextureAtlas(const std::shared_ptr<Hazel::Texture2D>& x)
+{
+    this->texure = x;
+    glm::vec4 rect(0, 0, 1, 1);
+    this->rects.push_back(rect);
+}
+
+void TextureAtlas::Load(std::string path)
+{
+    this->texure = LoadXML(path, this->rects);
+}
+
 TextureRef TextureAtlas::LoadXML(std::string path, std::vector<glm::vec4>& rects)
 {
     tinyxml2::XMLDocument doc;

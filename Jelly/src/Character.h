@@ -12,8 +12,9 @@ namespace Jelly
     {
     public:
         float PM_SCALE = 0.5f;
+        float PM_SCALEY = 1.0f;
 
-        Character(float x, float y, float size, float scale, PhysicsManager* physicsMgr);
+        Character(b2Body* bd, TextureAtlas textureRef, float w, float h, float scale);
         ~Character();
 
         typedef struct Input
@@ -39,14 +40,14 @@ namespace Jelly
         virtual void UpdateMove(Input input, b2Vec2& vel);
 
 
-        void MoveX(float power) const;
-        void Jump(float x, float power);
-        void Move(float dx, float dy) const;
+        virtual void MoveX(float power) const;
+        virtual void Jump(float x, float power);
+        virtual void Move(float dx, float dy) const;
 
 
-        void Explode();
+        virtual void Explode();
 
-        void Die() override;
+        virtual void Die();
 
         bool dead = false;
 
@@ -61,8 +62,8 @@ namespace Jelly
         bool key_left = false;
         bool key_right = false;
 
-        glm::vec2 psc_pos;
-        glm::vec2 psc_normal;
+        glm::vec2 psc_pos = glm::vec2(0, 0);
+        glm::vec2 psc_normal = glm::vec2(0, 0);
 #if DEBUG
         typedef struct ContactData
         {
@@ -101,6 +102,6 @@ namespace Jelly
 
         ParticleProps m_Particle;
 
-        TextureAtlas textureAtlas;
+        TextureAtlas m_textureAtlas;
     };
 }

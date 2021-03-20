@@ -1,6 +1,7 @@
 
 #include "GameObject.h"
 #include "Hazel/Renderer/Renderer2D.h"
+#include "ObjectManager.h"
 
 using namespace Jelly;
 
@@ -21,7 +22,7 @@ GameObject::GameObject()
 
 GameObject::GameObject(b2Body* bd, float w, float h, glm::vec4 color) : GameObject()
 {
-    type = Objects::Object;
+    m_type = Objects::Object;
 
     m_body = bd;
     b2BodyUserData data;
@@ -36,7 +37,7 @@ GameObject::GameObject(b2Body* bd, float w, float h, glm::vec4 color) : GameObje
     height = h;
 
     this->m_origin = { 0.5f, 0.5f };
-    this->clr = color;
+    this->m_color = color;
 }
 
 GameObject::GameObject(TextureRef tex, glm::vec2 pos, glm::vec2 size, glm::vec2 origin) : GameObject()
@@ -47,9 +48,9 @@ GameObject::GameObject(TextureRef tex, glm::vec2 pos, glm::vec2 size, glm::vec2 
     angle = 0;
     width = size.x;
     height = size.y;
-    this->tex = tex;
+    this->m_texture = tex;
     this->m_origin = origin;
-    this->clr = { 1, 1, 1, 1 };
+    this->m_color = { 1, 1, 1, 1 };
 }
 
 GameObject::GameObject(b2Body* bd, TextureRef tex, glm::vec2 size, glm::vec2 origin) : GameObject()
@@ -65,14 +66,31 @@ GameObject::GameObject(b2Body* bd, TextureRef tex, glm::vec2 size, glm::vec2 ori
 
     width = size.x;
     height = size.y;
-    this->tex = tex;
+    this->m_texture = tex;
     this->m_origin = origin;
-    this->clr = { 1, 1, 1, 1 };
+    this->m_color = { 1, 1, 1, 1 };
 }
 
 GameObject::~GameObject()
 {
+    if (destroyed)
+    {
+        ObjectManager::Remove(this);
+        return;
+    }
+    destroyed = true;
+    ObjectManager::Remove(this);
     m_body = nullptr;
+}
+
+void GameObject::Init(Objects::Type type, int layer)
+{
+    this->m_type = type;
+    this->m_draw_layer = layer;
+#if DEBUG
+    if (m_body)
+        m_body->_debug = (Objects::EnumStrings[this->m_type]);
+#endif
 }
 
 glm::vec2 GameObject::GetPosition() const
@@ -86,16 +104,12 @@ glm::vec2 GameObject::GetPosition() const
 
 glm::vec2 GameObject::GetPosition(glm::vec2 origin) const
 {
-    //float px = posx + abs(width) * (0.5f - origin.x);
-    //float py = posy + height * (0.5f - origin.y);
+    //float px = posx + abs(width) * (0.5f - m_origin.x);
+    //float py = posy + height * (0.5f - m_origin.y);
     float px = posx + abs(width) * (0.5f - m_origin.x) + abs(width) * (0.5f - origin.x);
     float py = posy - height * (-1 + m_origin.y + origin.y);
     return glm::vec2(px, py);
 }
-
-void GameObject::Die()
-{}
-
 
 void GameObject::Update(float time)
 {
@@ -107,29 +121,28 @@ void GameObject::Update(float time)
     }
 }
 
-
 // Draw the object on the given render target
 void GameObject::Draw(int layer)
 {
     if (dontDraw)
         return;
-    if (this->draw_layer != layer)
+    if (this->m_draw_layer != layer)
         return;
 
-    //float px = posx - abs(width) * 0.5f + origin.x;
-    //float py = posy - height * 0.5f + origin.y;
+    //float px = posx - abs(width) * 0.5f + m_origin.x;
+    //float py = posy - height * 0.5f + m_origin.y;
 
     float px = posx + abs(width) * (0.5f - m_origin.x);
     float py = posy + height * (0.5f - m_origin.y);
 
 
-    auto z = -0.99f + (static_cast<float>(type) / static_cast<float>(Objects::MAX_COUNT) * 0.5f);
+    auto z = -0.99f + (static_cast<float>(m_type) / static_cast<float>(Objects::MAX_COUNT) * 0.5f);
     z += (instanceID * 0.000001f);
 
-    if (tex.Has())
-        Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width, height }, angle, tex.Get(), tex_tiling, tex_offset, clr);
+    if (m_texture.Has())
+        Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width, height }, angle, m_texture.Get(), m_texture_tiling, m_texture_offset, m_color);
     else
-        Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width, height }, angle, clr);
+        Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width, height }, angle, m_color);
 
     //Hazel::Renderer2D::DrawRotatedQuad({ posx, posy, z +0.001f }, { 0.2f, 0.2f }, angle, { 1,1,1,1 });
 }

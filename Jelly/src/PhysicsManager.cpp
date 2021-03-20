@@ -1,6 +1,7 @@
 #include "PhysicsManager.h"
 #include "Globals.h"
 #include "GameObject.h"
+#include "Character.h"
 
 //#include <sstream>     // std::basic_stringstream, std::basic_istringstream, std::basic_ostringstream class templates and several typedefs 
 
@@ -208,8 +209,6 @@ b2Body* PhysicsManager::AddBox(float x, float y, float w, float h, float angle, 
 
     //b2Vec2 center = b2Vec2(-w * 0.5f * UNRATIO, -h * 0.5f * UNRATIO);
     b2Vec2 center = b2Vec2(w * (0.5f - ctrx) * UNRATIO, h * (0.5f - ctry) * UNRATIO);
-    //b2Vec2 center = b2Vec2(0, 0);
-
     b2PolygonShape shape;
     shape.SetAsBox(w * 0.5f * UNRATIO, h * 0.5f * UNRATIO, center, angle);
 
@@ -257,22 +256,30 @@ unsigned int PhysicsManager::RemoveBody(b2Body* body)
     if (!body)
         return 0;
 
+    auto c = physicsObjectList.size();
     physicsObjectList.remove(body);
+    if (c == physicsObjectList.size())
+    {
+        physicsWorld->DestroyBody(body);
+        return 0;
+    }
 
     std::list<b2Body*> links;
 
     for (b2JointEdge* f = body->GetJointList(); f; f = f->next)
     {
-        if (f->other)
+        if (f && f->other)
             links.push_back(f->other);
     }
     physicsWorld->DestroyBody(body);
 
     for (std::list<b2Body*>::iterator i = links.begin(); i != links.end();)
     {
+        physicsObjectList.remove(*i);
         physicsWorld->DestroyBody(*i);
         ++i;
     }
+
     return 1 + static_cast<unsigned int>(links.size());
 }
 
@@ -319,18 +326,32 @@ void PhysicsManager::BeginContact(b2Contact* contact)
 
     if (fixtureA->IsSensor() || fixtureB->IsSensor())
     {
-        if (goA && goA->type == Objects::Player)
+        if (goA && goA->m_type == Objects::Player)
         {
-            if (goB && (goB->type == Objects::Lava || goB->type == Objects::SawBlade || goB->type == Objects::Spike))
+            if (goB && (goB->m_type == Objects::Lava || goB->m_type == Objects::SawBlade || goB->m_type == Objects::Spike))
             {
-                goA->Die();
+                static_cast<Character*>(goA)->Die();
             }
         }
-        if (goB && goB->type == Objects::Player)
+        if (goB && goB->m_type == Objects::Player)
         {
-            if (goA && (goA->type == Objects::Lava || goA->type == Objects::SawBlade || goA->type == Objects::Spike))
+            if (goA && (goA->m_type == Objects::Lava || goA->m_type == Objects::SawBlade || goA->m_type == Objects::Spike))
             {
-                goB->Die();
+                static_cast<Character*>(goB)->Die();
+            }
+        }
+        if (goA && goA->m_type == Objects::Enemy)
+        {
+            if (goB && (goB->m_type == Objects::Lava))
+            {
+                static_cast<Character*>(goA)->Die();
+            }
+        }
+        if (goB && goB->m_type == Objects::Enemy)
+        {
+            if (goA && (goA->m_type == Objects::Lava))
+            {
+                static_cast<Character*>(goB)->Die();
             }
         }
     }
@@ -343,8 +364,8 @@ void PhysicsManager::BeginContact(b2Contact* contact)
         //check if one of the fixtures is single-sided
         b2Fixture* platformFixture = nullptr;
         b2Fixture* otherFixture = nullptr;
-        bool fixtureAIsPlatform = (goA->type == Objects::Platform);
-        bool fixtureBIsPlatform = (goB->type == Objects::Platform);
+        bool fixtureAIsPlatform = (goA->m_type == Objects::Platform);
+        bool fixtureBIsPlatform = (goB->m_type == Objects::Platform);
         if (fixtureAIsPlatform && fixtureBIsPlatform)
         {
             contact->SetEnabled(false);//avoids problems with swinging wall
@@ -399,7 +420,7 @@ void PhysicsManager::BeginContact(b2Contact* contact)
 
         if (solid)
         {
-            if (goA->type == Objects::Player || goB->type == Objects::Player)
+            if (goA->m_type == Objects::Player || goB->m_type == Objects::Player)
             {
                 m_numFootContacts++;
             }
@@ -424,7 +445,7 @@ void PhysicsManager::EndContact(b2Contact* contact)
 
             if (goA && goB)
             {
-                if (goA->type == Objects::Player || goB->type == Objects::Player)
+                if (goA->m_type == Objects::Player || goB->m_type == Objects::Player)
                     if (m_numFootContacts > 0)
                         m_numFootContacts--;
             }
@@ -505,12 +526,12 @@ void PhysicsManager::PreSolve(b2Contact* contact, const b2Manifold* oldManifold)
 
         b2Vec2 cnormal = contact->GetManifold()->localNormal;
 
-        if (goA->type == Objects::Player && goB->type == Objects::Platform)
+        if (goA->isCharacter && goB->m_type == Objects::Platform)
         {
             PreSolvePlayerCollision(contact, cnormal, goA, goB, fixtureA, fixtureB);
         }
 
-        if (goB->type == Objects::Player && goA->type == Objects::Platform)
+        if (goB->isCharacter && goA->m_type == Objects::Platform)
         {
             PreSolvePlayerCollision(contact, -cnormal, goB, goA, fixtureB, fixtureA);
         }

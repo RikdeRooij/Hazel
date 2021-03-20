@@ -72,8 +72,8 @@ void JellyGame::StartGame()
         0;
 #endif
     
-    objectManager->CreateEnemy(-startX, 250, 50);
-    this->player = objectManager->CreatePlayer(startX, 0, 50);
+    //objectManager->CreateEnemy(-startX, 300 - (20 + 13), 40);
+    this->player = objectManager->CreatePlayer(startX, -13, 50);
 
     this->lava = objectManager->CreateLava(0, -800, 600 * 4, 200 * 4);
 
@@ -82,6 +82,7 @@ void JellyGame::StartGame()
     //playerScoreBestMaxY = 0;
 
     clockStart = clock();
+    startFrame = true;
 }
 
 void JellyGame::DestroyGame() const
@@ -157,6 +158,12 @@ glm::vec2 UpdatePlayer(Player* player, float dt, Hazel::OrthographicCameraContro
 void JellyGame::OnUpdate(Hazel::Timestep ts)
 {
     HZ_PROFILE_FUNCTION();
+
+    if (startFrame)
+    {
+        startFrame = false;
+        ts = 0;
+    }
 
     auto deltaTime = ts.GetMilliseconds();
 
@@ -236,6 +243,7 @@ void JellyGame::UpdateGame(Hazel::Timestep& ts)
         objectManager->CreateBox(mousePosf.x, mousePosf.y, 32.0f, 32.0f, { .5f, .5f, .5f, 1.f }, BodyType::dynamicBody, &FixtureData::TEST);
     }
 
+#if DEBUG
     if (Hazel::Input::IsMouseButtonPressed(Hazel::Mouse::ButtonRight))
     {
         auto mp = Hazel::Input::GetMousePosition();
@@ -257,6 +265,7 @@ void JellyGame::UpdateGame(Hazel::Timestep& ts)
             m_ParticleSystem.Emit(lavaParticle);
         }
     }
+#endif
 
     m_ParticleSystem.OnUpdate(ts);
 }

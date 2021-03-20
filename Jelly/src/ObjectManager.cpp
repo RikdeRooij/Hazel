@@ -28,6 +28,7 @@ using namespace Jelly;
 #define LVL_MIN_DOUBLE 0.71f // add another platform when more then this away from center
 
 #define LVL_SPIKE_CHANCE 0.2f
+#define LVL_ENEMY_CHANCE 0.2f
 
 #define SAW_ROT_SPEED 2.0f
 #define SAW_OFFSET 32
@@ -42,6 +43,7 @@ std::string DBG_PM_BODY(const b2Body* body, const std::string info = "")
 
     std::string bodyStr = b2BodyTypeStr[body->GetType()] + 15;
     std::string shapeStr = b2ShapeTypeStr[body->GetFixtureList()->GetShape()->GetType()] + 11;
+
     //std::string userData = (char*)body->GetFixtureList()->GetUserData();
     std::string infoStr = info.length() > 0 ? " *" + info + "*" : "";
 
@@ -97,18 +99,15 @@ Textures::Type RandomTexture(Textures::Type min, Textures::Type max)
     return static_cast<Textures::Type>(min + ri);
 }
 
-// Delete function object type. (std::for_each)
-struct Delete
-{
-    int cnt = 0;
-    template <class T>
-    void operator ()(T*& p) { if (p) ++cnt; delete p; p = NULL; }
-};
-
 // Destructor
 ObjectManager::~ObjectManager()
 {
-    std::for_each(objectList.begin(), objectList.end(), Delete());
+    for (std::list<GameObject*>::iterator i = objectList.begin(); i != objectList.end();)
+    {
+        GameObject* go = *i;
+        i = objectList.erase(i); // update iterator
+        delete go;
+    }
     objectList.clear();
 
     delete physicsMgr;
@@ -122,9 +121,15 @@ PhysicsManager* ObjectManager::GetPhysicsMgr()
 
 Player* ObjectManager::CreatePlayer(float x, float y, float size)
 {
-    Player* player = new Player(x * LVL_SCALE, y * LVL_SCALE, size * LVL_SCALE, LVL_SCALE, physicsMgr);
-    player->type = Objects::Player;
-    player->SetDrawLayer(3);
+    auto fixtureDef = FixtureData(1.0f, 0.5f, 0.45f, "Player");
+    auto bodyBox = physicsMgr->AddBox(x * LVL_SCALE, y * LVL_SCALE, size * LVL_SCALE, size * 0.9f * LVL_SCALE, 0,
+                                      BodyType::dynamicBody, &fixtureDef, 0.5f, 0.55f);
+
+    //TextureAtlas textureRef = TextureRef(Hazel::Texture2D::Create("assets/Jelly2.png"));
+    TextureAtlas textureRef = TextureAtlas("assets/jelly_anim.xml");
+
+    Player* player = new Player(bodyBox, textureRef, size * 1.4f * LVL_SCALE, size * 1.0f * LVL_SCALE, LVL_SCALE);
+    player->Init(Objects::Player, 3);
 
     DBG_OUTPUT("Added: %s %s", DBG_GM_GO(player), DBG_PM_BODY(player->GetBody(), "Player").c_str());
     //objectList.push_back(player);
@@ -133,10 +138,16 @@ Player* ObjectManager::CreatePlayer(float x, float y, float size)
 
 Enemy* ObjectManager::CreateEnemy(float x, float y, float size)
 {
-    Enemy* enemy = new Enemy(x * LVL_SCALE, y * LVL_SCALE, size * LVL_SCALE, LVL_SCALE, physicsMgr);
-    enemy->type = Objects::Enemy;
-    enemy->SetDrawLayer(1);
-    enemy->SetColor({ 1.f, 0.3f, 0.3f, 1.f });
+    auto fixtureDef = FixtureData(1.0f, 0.5f, 0.45f, "Enemy");
+    auto bodyBox = physicsMgr->AddBox(x * LVL_SCALE, y * LVL_SCALE, size * LVL_SCALE, size * 0.9f * LVL_SCALE, 0,
+                                      BodyType::dynamicBody, &fixtureDef, 0.5f, 0.55f);
+
+    //TextureAtlas textureRef = TextureRef(Hazel::Texture2D::Create("assets/Jelly2.png"));
+    TextureAtlas textureRef = TextureAtlas("assets/jelly_anim.xml");
+
+    Enemy* enemy = new Enemy(bodyBox, textureRef, size * 1.4f * LVL_SCALE, size * 1.0f * LVL_SCALE, LVL_SCALE);
+    enemy->Init(Objects::Enemy, 1);
+    //enemy->SetColor({ 1.f, 0.3f, 0.3f, 1.f });
 
     DBG_OUTPUT("Added: %s %s", DBG_GM_GO(enemy), DBG_PM_BODY(enemy->GetBody(), "Enemy").c_str());
     objectList.push_back(enemy);
@@ -168,6 +179,7 @@ GameObject* ObjectManager::CreateLava(float x, float y, float w, float h)
     physicsMgr->AddPhysicsObject(physBody);
 
     auto texture = textures[Textures::Lava];
+    //auto texture = Hazel::Texture2D::Create("assets/lava_f.png");
 
     //glm::vec2 texSize = { texture.get()->GetWidth(), texture.get()->GetHeight() };
     //GameObject* lava = new GameObject(physBody, texture, { texSize.x * LVL_SCALE, texSize.y * LVL_SCALE }, { .5f, 1.0f });
@@ -175,8 +187,7 @@ GameObject* ObjectManager::CreateLava(float x, float y, float w, float h)
     GameObject* lava = new GameObject(physBody, texture, { w * LVL_SCALE, h * LVL_SCALE }, { ctrx, ctry - ctry_off });
     lava->SetTilingFactor({ w / h, 1.0f });
     lava->dontDestroy = true;
-    lava->type = Objects::Lava;
-    lava->SetDrawLayer(3);
+    lava->Init(Objects::Lava, 3);
 
     DBG_OUTPUT("Added: %s %s", DBG_GM_GO(lava), DBG_PM_BODY(lava->GetBody(), "Lava").c_str());
     //objectList.push_back(lava);
@@ -190,8 +201,8 @@ GameObject* ObjectManager::CreateBox(float x, float y, float w, float h, glm::ve
     b2Body* physBody = physicsMgr->AddBox(x, y, w * LVL_SCALE, h * LVL_SCALE, 0, bodyType, fixtureData, 0.5f, 0.5f);
 
     GameObject* object = new GameObject(physBody, w * LVL_SCALE, h * LVL_SCALE, color);
-    object->type = Objects::Object;
-    object->SetDrawLayer(0);
+    object->m_type = Objects::Object;
+    object->Init(Objects::Object, 0);
 
     b2BodyUserData data;
     data.pointer = reinterpret_cast<uintptr_t>(object);
@@ -214,7 +225,7 @@ GameObject* ObjectManager::AddBackground(float &y)
     bool flip = abs(i % 2) == 1;
 
     GameObject* object = new GameObject(bgTex, { 0, (y - bgHeight) * LVL_SCALE }, { (flip ? -bgSize.x : bgSize.x) * LVL_SCALE, bgSize.y * LVL_SCALE }, { 0.5f, 0.f });
-    object->type = Objects::Background;
+    object->Init(Objects::Background, 0);
 
     DBG_OUTPUT("Added: %s *LVL_BG*", DBG_GM_GO(object));
     objectList.push_back(object);
@@ -233,8 +244,7 @@ GameObject* ObjectManager::AddLeftWall(float offX, float &y)
 
     GameObject* object = CreateBoxPhysicsObject({ (-offX - lwallSize.x * 0.0f), (y - h) }, lwallSize, { 1, 0 }, 0,
                                                 lwallTex, staticBody, LVL_FIXTURE);
-    object->type = Objects::Wall;
-    object->SetDrawLayer(3);
+    object->Init(Objects::Wall, 3);
 
     // fill gabs
     if (texType == Textures::Lvl_Wall_Left_Big_0)
@@ -269,8 +279,7 @@ GameObject* ObjectManager::AddRightWall(float offX, float &y)
 
     GameObject* object = CreateBoxPhysicsObject({ (offX + rwallSize.x * 0.0f), (y - h) }, rwallSize, { 0, 0 }, 0,
                                                 rwallTex, staticBody, LVL_FIXTURE);
-    object->type = Objects::Wall;
-    object->SetDrawLayer(3);
+    object->Init(Objects::Wall, 3);
 
     // fill gabs
     if (texType == Textures::Lvl_Wall_Right_Big_0)
@@ -303,8 +312,7 @@ GameObject* ObjectManager::AddPlatform(float x, float y, glm::vec2 org, float an
 
     GameObject* object = CreateBoxPhysicsObject({ (x), (y - h) }, texSize, { org.x,  org.y }, angle,
                                                 tex, staticBody, LVL_FIXTURE);
-    object->type = Objects::Platform;
-    object->SetDrawLayer(1);
+    object->Init(Objects::Platform, 1);
 
     DBG_OUTPUT("Added: %s %s", DBG_GM_GO(object), DBG_PM_BODY(object->GetBody(), "LVL_PLATFORM").c_str());
     //objectList.push_back(object);
@@ -323,6 +331,10 @@ GameObject* ObjectManager::AddSawblade(float x, float y)
 
     b2Body* sensorBody = physicsMgr->AddCircle(x * LVL_SCALE, y * LVL_SCALE, r * 0.46f * LVL_SCALE, staticBody, &FixtureData::SENSOR);
 
+#if DEBUG
+    sensorBody->_debug = "sawblade_sensor";
+#endif
+
     b2RevoluteJointDef jointDef;
     jointDef.Initialize(physBody, sensorBody, physBody->GetWorldCenter());
     jointDef.enableLimit = false;
@@ -334,8 +346,7 @@ GameObject* ObjectManager::AddSawblade(float x, float y)
     physBody->SetAngularVelocity(SAW_ROT_SPEED * -d);
 
     GameObject* object = new GameObject(physBody, sawTex, { (sawSize.x * d) * LVL_SCALE, sawSize.y * LVL_SCALE }, { 0.5f, 0.5f });
-    object->type = Objects::SawBlade;
-    object->SetDrawLayer(2);
+    object->Init(Objects::SawBlade, 2);
 
     b2BodyUserData data;
     data.pointer = reinterpret_cast<uintptr_t>(object);
@@ -355,8 +366,7 @@ GameObject* ObjectManager::AddSpike(float x, float y, float angle)
         (float)spikeSize.x * LVL_SCALE, (float)spikeSize.y * LVL_SCALE, angle, staticBody, &FixtureData::SENSOR);
 
     GameObject* object = new GameObject(physBody, spikeTex, { spikeSize.x * LVL_SCALE, spikeSize.y * LVL_SCALE }, { .5f, .5f });
-    object->type = Objects::Spike;
-    object->SetDrawLayer(2);
+    object->Init(Objects::Spike, 2);
 
     DBG_OUTPUT("Added: %s %s", DBG_GM_GO(object), DBG_PM_BODY(physBody, "LVL_SPIKE").c_str());
     objectList.push_back(object);
@@ -427,8 +437,8 @@ void ObjectManager::AddPlatforms(float wallOffX)
     lvl_prev_x = rx;
     float ox = (rx + 1.f) * .5f; // x-origin (0-1)
 
-    //GameObject* go =
-    AddPlatform(wallOffX * rx, lvl_y, { ox, 0.f }, 0, tex);
+    GameObject* go =
+        AddPlatform(wallOffX * rx, lvl_y, { ox, 0.f }, 0, tex);
 
     lvl_prev_double = false;
 
@@ -444,12 +454,21 @@ void ObjectManager::AddPlatforms(float wallOffX)
         //go->setColor({ 0.0f, 1.0f, 1.0f, 1.0f });
         lvl_prev_double = true;
     }
+    else
+    {
+        if (lvl_y > 500 && (randfunc(0.0f, 1.0f) < LVL_ENEMY_CHANCE))
+        {
+            auto pp = go->GetPosition({ .5f, 0.f }) / LVL_SCALE;
+            auto enemy = CreateEnemy(pp.x, pp.y, 33);
+            //enemy->GetBody()->SetEnabled(false);
+        }
+    }
 }
 
 void ObjectManager::GenerateLevel(float y)
 {
     auto floor = AddPlatform(0, LVL_END_Y, { 0.5f, 1 }, 0, Textures::Lvl_Ground);
-    floor->type = Objects::Ground;
+    floor->m_type = Objects::Ground;
 
     lvl_l_y = LVL_END_Y;
     lvl_r_y = LVL_END_Y;
@@ -491,30 +510,56 @@ int ObjectManager::RemoveObjectsBelow(float y)
     {
         if ((*i)->dontDestroy)
         {
-            i++; //next object
+            ++i; //next object
         }
         else
-            if ((*i)->GetPosition().y + (*i)->GetHeight() * .5f < y)
+        {
+            auto pos = (*i)->GetPosition();
+            auto h = (*i)->GetHeight();
+            if ((pos.y + h * .5f < y) || pos.y > y + 32)
             {
-                DBG_OUTPUT("Deleted: Object %s", Objects::EnumStrings[(*i)->type]);
-
-                physicsMgr->RemoveBody((*i)->GetBody());
-
+                GameObject* go = *i;
                 i = objectList.erase(i); // update iterator
+
+                DBG_OUTPUT("Deleted: Object %s", Objects::EnumStrings[go->m_type]);
+
+                physicsMgr->RemoveBody(go->GetBody());
+                //delete go;
+
                 count++;
             }
             else
-                i++; //next object
+                ++i; //next object
+        }
     }
     if (count > 0)
         DBG_OUTPUT("Deleted objects: %d", count);
     return count;
 }
 
+int ObjectManager::Remove(GameObject* go)
+{
+    if (go)
+    {
+        DBG_OUTPUT("Delete: Object %s", Objects::EnumStrings[go->m_type]);
+
+        auto c = objectList.size();
+        objectList.remove(go);
+        bool removed = c != objectList.size();
+
+        int dc = physicsMgr->RemoveBody(go->GetBody());
+        if (!go->destroyed)
+            delete go;
+
+        return dc > 0 ? dc : (removed ? 1 : 0);
+    }
+    return 0;
+}
+
 void ObjectManager::UpdateStep(float dt)
 {
-    physicsMgr->Update(dt);
     UpdateObjects(dt);
+    physicsMgr->Update(dt);
 }
 
 void ObjectManager::UpdateObjects(float dt)

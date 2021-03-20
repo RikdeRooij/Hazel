@@ -10,6 +10,9 @@ namespace Jelly
     public:
         TextureAtlas();
         TextureAtlas(std::string path);
+        TextureAtlas(const std::shared_ptr<Hazel::Texture2D>& x);
+
+        void Load(std::string path);
 
         static TextureRef LoadXML(std::string path, std::vector<glm::vec4>& rects);
 

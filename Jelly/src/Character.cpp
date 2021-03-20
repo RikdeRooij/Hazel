@@ -7,23 +7,21 @@
 #include "../vendor/tinyxml2/tinyxml2.h"
 #include "TextureAtlas.h"
 #include "DebugDraw.h"
+#include "ObjectManager.h"
 #pragma comment(lib, "winmm.lib")
 
 using namespace Jelly;
 
 //#define TEST 1
-
-#ifndef PM_SCALE
 //#define PM_SCALE 0.5f
-#endif
 
 #define MOVE_SIDE (3.0f * PM_SCALE) // Horizontal (left-right) movement power
 #define MOVE_SIDE_LIMIT (4.0f * PM_SCALE) // Horizontal (left-right) movement limit
 
-#define MOVE_JUMP_UP (7.0f * PM_SCALE) // jump power
+#define MOVE_JUMP_UP (7.0f * PM_SCALE * PM_SCALEY) // jump power
 #define MOVE_JUMP_TIME 200 // min time in milliseconds between jumps
 
-#define MOVE_WALLJUMP_UP (4.0f * PM_SCALE) // wall-jump up power
+#define MOVE_WALLJUMP_UP (4.0f * PM_SCALE * PM_SCALEY) // wall-jump up power
 #define MOVE_WALLJUMP_SIDE (4.0f * PM_SCALE) // wall-jump side (away from wall) power
 
 #define JUMP_NOXMOVE_TIME 50.0f // miliseconds x movement is limited after jump
@@ -37,61 +35,54 @@ using namespace Jelly;
 #define MOVE_AIR_COLLDING 0.5f // amount of movement when not grounded but still touching a wall or ceiling
 
 
-#define MOVE_DAMPING 3.0f // damping when grounded
+#define MOVE_DAMPING 1.0f // damping when grounded
 
 #define GROUND_NORMAL 0.7f // max absolute normal.x to be considered ground. (acos(0.7) * (180/PI) = 45.6 degrees)
 
 
-Character::Character(float x, float y, float size, float scale, PhysicsManager* physicsMgr)
+Character::Character(b2Body* bd, TextureAtlas textureRef, float w, float h, float scale)
+    : GameObject(bd, w, h, { 1,1,1,1 })
 {
-    dontDestroy = true;
+    this->m_textureAtlas = textureRef;
+    this->m_texture = textureRef.GetTextureRef();
 
-    b2BodyDef bodyDef;
-    bodyDef.type = b2BodyType::b2_dynamicBody;
-    bodyDef.position.Set(x*UNRATIO, y*UNRATIO);
+    dontDestroy = false;
+    isCharacter = true;
 
-    b2PolygonShape shape;
-    shape.SetAsBox(size*0.5f*UNRATIO, size*0.5f*UNRATIO);
-
-    b2FixtureDef fixtureDef = FixtureData(1.0f, 0.2f, 0.45f, "Character");
-    fixtureDef.shape = &shape;
-
-    b2Body* physBody = physicsMgr->GetPhysicsWorld()->CreateBody(&bodyDef);
     b2BodyUserData data;
     data.pointer = reinterpret_cast<uintptr_t>(this);
-    physBody->SetUserData(data);
-    physBody->CreateFixture(&fixtureDef);
-    physicsMgr->AddPhysicsObject(physBody);
-
-    physBody->SetFixedRotation(true);
+    bd->SetUserData(data);
+    bd->SetFixedRotation(true);
     //physBody->SetLinearDamping(MOVE_DAMPING);
-    physBody->SetLinearDamping(0);
+    bd->SetLinearDamping(0);
 
     time = 0;
     lastJumpTime = 0;
     lastInsideTime = 0;
 
-    m_body = physBody;
+    m_body = bd;
 
     //dontDestroy = false;
     dontDraw = false;
 
-    width = size + 0.1f;// tsize.x * scale;
-    height = size + 0.1f;//tsize.y * scale;
-
-    this->tex = Hazel::Texture2D::Create("assets/Jelly2.png");
-    glm::vec2 tsize = { tex.Get()->GetWidth(), tex.Get()->GetHeight() };
-    float tdx = (size + 0.08f) / tsize.x;
-    float tdy = (size + 0.08f) / tsize.y;
-    float td = max(tdx, tdy);
-    width = tsize.x * td;// +0.05f;
-    height = tsize.y * td;// +0.05f;
+    glm::vec2 tsize = { m_texture.Get()->GetWidth(), m_texture.Get()->GetHeight() };
+    if (m_textureAtlas.Valid())
+    {
+        auto rec = m_textureAtlas.GetRect(0);
+        tsize.x = rec.z;
+        tsize.y = rec.w;
+    }
+    float tdx = (w + 0.08f) / tsize.x;
+    float tdy = (h + 0.08f) / tsize.y;
+    width = tsize.x * tdx;// +0.05f;
+    height = tsize.y * tdy;// +0.05f;
 
     posx = m_body->GetPosition().x * RATIO;
     posy = m_body->GetPosition().y * RATIO;
     angle = toDegrees(m_body->GetAngle());
     m_origin = { .5f, .5f };
-    clr = { 1, 1, 1, 1 };
+    m_color = { 1, 1, 1, 1 };
+    GetBody()->SetLinearVelocity(b2Vec2(0, 0));
 
 
     // Init here
@@ -103,8 +94,6 @@ Character::Character(float x, float y, float size, float scale, PhysicsManager* 
     m_Particle.Velocity = { 0.1f, 0.1f };
     m_Particle.VelocityVariation = { 2.5f, 2.5f };
     m_Particle.Position = { 0.0f, 0.0f };
-
-    textureAtlas = TextureAtlas("assets/jelly_anim.xml");
 }
 
 Character::~Character()
@@ -142,7 +131,7 @@ void Character::Update(float dt)
     {
         if (prev_vel.y < -4.f)
         {
-            DBG_OUTPUT("land:   %.3f   %.3f", vel.y, prev_vel.y);
+            //DBG_OUTPUT("land:   %.3f   %.3f", vel.y, prev_vel.y);
             lastLandTime = time;
         }
     }
@@ -152,7 +141,7 @@ void Character::Update(float dt)
     anim_squish = Interpolate::Linear(anim_squish, wall_squish, dt * 10);
 
 
-    float damping = !inside && grounded ? MOVE_DAMPING : 0;
+    float damping = !inside && grounded ? MOVE_DAMPING : 0.01f;
     GetBody()->SetLinearDamping(damping);
 
     Input input = UpdateInput();
@@ -240,8 +229,8 @@ void Character::UpdateCollisions(b2Vec2& vel)
         bool isUp = (normal.y > 0 && abs(normal.x) < GROUND_NORMAL);
 
         bool isInside = manifold->pointCount > 0 &&
-            (glm::length(ctrDirVec) < 0.1f ||
-            (abs(ctrDirVec.x) < 0.2f && abs(ctrDirVec.y) < 0.19f));
+            (glm::length(ctrDirVec) < 0.17f * height ||
+            (abs(ctrDirVec.x) < 0.34f * height && abs(ctrDirVec.y) < 0.32f * height));
 
         if (isInside)
             inside = true;
@@ -487,14 +476,14 @@ void Character::Draw(int layer)
         return;
     //GameObject::Draw(layer);
 
-    if (this->draw_layer != layer)
+    if (this->m_draw_layer != layer)
         return;
 
     float px = posx + abs(width) * (0.5f - m_origin.x);
     float py = posy + height * (0.5f - m_origin.y);
 
 
-    auto z = -0.99f + (static_cast<float>(type) / static_cast<float>(Objects::MAX_COUNT) * 0.5f);
+    auto z = -0.99f + (static_cast<float>(m_type) / static_cast<float>(Objects::MAX_COUNT) * 0.5f);
     z += (instanceID * 0.000001f);
 
     const float anim_speed_breathe = 3;
@@ -515,7 +504,7 @@ void Character::Draw(int layer)
     py += sh * .5f;
     px += sign(width) * 0.04f; // perspective image
 
-    if (textureAtlas.Valid() && jumpanim)
+    if (m_textureAtlas.Valid() && jumpanim)
     {
         const float animspeed = 7.0f;// 4.5f;
         const uint acnt = 3;
@@ -523,19 +512,19 @@ void Character::Draw(int layer)
         //if (animtime * animspeed >= ((acnt - 1) * 2 - 0.1f))
         if (animtime * animspeed >= (acnt - 0.1f))
             jumpanim = false;
-        auto  texRect = textureAtlas.AnimationRect(animtime * animspeed + 1, 6, acnt, false);
+        auto  texRect = m_textureAtlas.AnimationRect(animtime * animspeed + 1, 6, acnt, false);
 
         Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width * wm + sign(width) * sw, height * hm + sh }, angle,
-                                           textureAtlas.GetTextureRef().Get(),
-                                           { texRect.z, texRect.w }, { texRect.x, texRect.y }, clr);
+                                           m_textureAtlas.GetTextureRef().Get(),
+                                           { texRect.z, texRect.w }, { texRect.x, texRect.y }, m_color);
     }
-    else if (textureAtlas.Valid())
+    else if (m_textureAtlas.Valid())
     {
         const float minxspd = 0.9f;
         bool klr = (key_left || key_right) && (speed > minxspd && abs(vel.x) > minxspd && abs(prev_vel.x) > minxspd && (!wallLeft && !wallRight));
         float animspeed = klr ? anim_move_speed : anim_idle_speed;
 
-        auto texRect = textureAtlas.AnimationRect(animtime * animspeed, klr ? 5 : 0, klr ? -3 : 3, true);
+        auto texRect = m_textureAtlas.AnimationRect(animtime * animspeed, klr ? 5 : 0, klr ? -3 : 3, true);
         //texRect = textureAtlas.GetRect(6);
 
         float fangle = angle;
@@ -548,16 +537,16 @@ void Character::Draw(int layer)
 
 
         Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width * wm + sign(width) * sw, height * hm + sh }, fangle,
-                                           textureAtlas.GetTextureRef().Get(),
-                                           { texRect.z, texRect.w }, { texRect.x, texRect.y }, clr);
+                                           m_textureAtlas.GetTextureRef().Get(),
+                                           { texRect.z, texRect.w }, { texRect.x, texRect.y }, m_color);
     }
     else
     {
-        if (tex.Has())
+        if (m_texture.Has())
             Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width * wm + sign(width) * sw, height * hm + sh }, angle,
-                                               tex.Get(), tex_tiling, tex_offset, clr);
+                                               m_texture.Get(), m_texture_tiling, m_texture_offset, m_color);
         else
-            Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width * wm + sign(width) * sw, height * hm + sh }, angle, clr);
+            Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width * wm + sign(width) * sw, height * hm + sh }, angle, m_color);
     }
 }
 

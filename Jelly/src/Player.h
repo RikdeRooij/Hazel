@@ -11,7 +11,9 @@ namespace Jelly
         public Character
     {
     public:
-        Player(float x, float y, float size, float scale, PhysicsManager* physicsMgr);
+        static Player* instance;
+
+        Player(b2Body* bd, TextureAtlas textureRef, float w, float h, float scale);
         ~Player();
 
         Input UpdateInput() override;

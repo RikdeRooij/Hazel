@@ -116,7 +116,12 @@ namespace Jelly
         {
             b2FixtureDef fixtureDef;
             fixtureDef.shape = nullptr;
+
             //fixtureDef.userData = this->userData;
+#if DEBUG
+            //fixtureDef._debug = this->userData;
+#endif
+
             fixtureDef.friction = this->friction;
             fixtureDef.restitution = this->restitution;
             fixtureDef.density = this->density;
@@ -128,12 +133,14 @@ namespace Jelly
         FixtureData(float density, float friction = 0.2f, float restitution = 0.0f, char* userData = nullptr)
         {
             this->density = density; this->friction = friction; this->restitution = restitution;
-            this->userData = userData; isSensor = false;
+            this->userData = userData; 
+            isSensor = false;
         }
         // Constructor3: sensor
         FixtureData(bool sensor, b2Filter filter = {}, char* userData = nullptr)
         {
-            isSensor = sensor; this->filter = filter; this->userData = userData;
+            isSensor = sensor; this->filter = filter; 
+            this->userData = userData;
             this->density = 0.0f; this->friction = 0.2f; this->restitution = 0.0f;
         }
 

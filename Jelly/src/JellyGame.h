@@ -31,6 +31,7 @@ namespace Jelly
         bool OnWindowResized(Hazel::WindowResizeEvent& e);
         void OnResize(float width, float height);
 
+        Player* GetPlayer() const { return player; }
         Hazel::OrthographicCameraController* GetCameraController() { return &m_CameraController; }
         /*
         void EmitParticles(float x, float y, int count) { EmitParticles(x, y, count, m_Particle); }
@@ -60,6 +61,7 @@ namespace Jelly
         ulong playerScoreMaxY = 0;
         ulong playerScoreBestMaxY = 0;
 
+        bool startFrame = true;
         clock_t clockStart;
         float dt_next = 0;
         unsigned int avg_counter = 0;
