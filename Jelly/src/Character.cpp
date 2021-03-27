@@ -1,14 +1,11 @@
 #include "Character.h"
 #include "Hazel/Renderer/Renderer2D.h"
 #include "Hazel/Core/Input.h"
-#include <windows.h>
-#include <playsoundapi.h>
-#include <mmsystem.h>
 #include "../vendor/tinyxml2/tinyxml2.h"
 #include "TextureAtlas.h"
 #include "DebugDraw.h"
 #include "ObjectManager.h"
-#pragma comment(lib, "winmm.lib")
+#include "AudioManager.h"
 
 using namespace Jelly;
 
@@ -155,6 +152,11 @@ void Character::Update(float dt)
             this->height = -std::abs(height);
             GetBody()->SetLinearVelocity(b2Vec2(0, 0));
             GetBody()->SetAwake(false);
+            if (GetBody()->IsEnabled())
+            {
+                if (!GetBody()->GetWorld()->IsLocked())
+                    GetBody()->SetEnabled(false);
+            }
         }
     }
 
@@ -183,16 +185,28 @@ void Character::UpdateCollisions(b2Vec2& vel)
     psc_pos = { 0,0 };
     psc_normal = { 0,0 };
     int ceCount = 0;
-    for (b2ContactEdge* ce = GetBody()->GetContactList(); ce; ce = ce->next)
+    auto celist = GetBody()->GetContactList();
+    for (b2ContactEdge* ce = celist; ce; ce = ce->next)
     {
         b2Contact* c = ce->contact;
 
-        //DBG_WRITE("%s  ##  %s", ((char*)c->GetFixtureA()->GetUserData()), ((char*)c->GetFixtureA()->GetUserData()));
-        //c->GetFixtureA()
-        //if (c->GetFixtureA() == (*CharacterBody)[i]->GetFixtureList())
+        b2Fixture* fixtureA = c->GetFixtureA();
+        b2Fixture* fixtureB = c->GetFixtureB();
+
+        GameObject* goA = PhysicsManager::GetUserData<GameObject*>(fixtureA);
+        GameObject* goB = PhysicsManager::GetUserData<GameObject*>(fixtureB);
+
+        GameObject* other = goA == this ? goB : goB == this ? goA : nullptr;
+
+        if (!other)
+            throw;
+        //DBG_WRITE("## %s  ##  %s", (typeid(*goA).name()), (typeid(*goB).name()));
 
         b2Manifold* manifold = c->GetManifold();
         if (manifold->pointCount <= 0)
+            continue;
+
+        if (!OnCollision(manifold, other))
             continue;
 
         b2WorldManifold worldManifold;
@@ -454,20 +468,21 @@ void Character::Die()
     if (dead)
         return;
 
+    dead = true;
+
     GetBody()->SetAwake(false);
+    if (!GetBody()->GetWorld()->IsLocked())
+        GetBody()->SetEnabled(false);
 
     SetColor({ 1,1,1,0.1f });
 
     Explode();
-
-    PlaySoundA("assets/Sounds/laser6.wav", nullptr, SND_FILENAME | SND_ASYNC);
-
-    dead = true;
 }
 
 void Character::PlayJumpSound(int i) const
 {
-    PlaySoundA(format("assets/Sounds/jump%d.wav", (i + 1)).c_str(), nullptr, SND_FILENAME | SND_ASYNC);
+    //AudioManager::PlayFile(format("assets/Sounds/jump%d.wav", (i + 1)).c_str());
+    AudioManager::PlaySoundType((Sounds::Type)(Sounds::Jump1 + i));
 }
 
 void Character::Draw(int layer)

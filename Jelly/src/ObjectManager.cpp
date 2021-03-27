@@ -122,6 +122,7 @@ PhysicsManager* ObjectManager::GetPhysicsMgr()
 Player* ObjectManager::CreatePlayer(float x, float y, float size)
 {
     auto fixtureDef = FixtureData(1.0f, 0.5f, 0.45f, "Player");
+    fixtureDef.filter.categoryBits = (1 << Category::Player);
     auto bodyBox = physicsMgr->AddBox(x * LVL_SCALE, y * LVL_SCALE, size * LVL_SCALE, size * 0.9f * LVL_SCALE, 0,
                                       BodyType::dynamicBody, &fixtureDef, 0.5f, 0.55f);
 
@@ -129,7 +130,7 @@ Player* ObjectManager::CreatePlayer(float x, float y, float size)
     TextureAtlas textureRef = TextureAtlas("assets/jelly_anim.xml");
 
     Player* player = new Player(bodyBox, textureRef, size * 1.4f * LVL_SCALE, size * 1.0f * LVL_SCALE, LVL_SCALE);
-    player->Init(Objects::Player, 3);
+    player->Init(Objects::Player, 4);
 
     DBG_OUTPUT("Added: %s %s", DBG_GM_GO(player), DBG_PM_BODY(player->GetBody(), "Player").c_str());
     //objectList.push_back(player);
@@ -139,6 +140,8 @@ Player* ObjectManager::CreatePlayer(float x, float y, float size)
 Enemy* ObjectManager::CreateEnemy(float x, float y, float size)
 {
     auto fixtureDef = FixtureData(1.0f, 0.5f, 0.45f, "Enemy");
+    fixtureDef.filter.categoryBits = (1 << Category::Enemy);
+    //fixtureDef.filter.maskBits = ~(1 << Category::Player);
     auto bodyBox = physicsMgr->AddBox(x * LVL_SCALE, y * LVL_SCALE, size * LVL_SCALE, size * 0.9f * LVL_SCALE, 0,
                                       BodyType::dynamicBody, &fixtureDef, 0.5f, 0.55f);
 
@@ -172,6 +175,7 @@ GameObject* ObjectManager::CreateLava(float x, float y, float w, float h)
 
     b2FixtureDef fixtureDef = FixtureData::SENSOR;
     fixtureDef.shape = &shape;
+    fixtureDef.filter.categoryBits = 1 << Category::Interactive;
 
     b2Body* physBody = physicsMgr->GetPhysicsWorld()->CreateBody(&bodyDef);
     physBody->CreateFixture(&fixtureDef);
@@ -187,7 +191,7 @@ GameObject* ObjectManager::CreateLava(float x, float y, float w, float h)
     GameObject* lava = new GameObject(physBody, texture, { w * LVL_SCALE, h * LVL_SCALE }, { ctrx, ctry - ctry_off });
     lava->SetTilingFactor({ w / h, 1.0f });
     lava->dontDestroy = true;
-    lava->Init(Objects::Lava, 3);
+    lava->Init(Objects::Lava, 4);
 
     DBG_OUTPUT("Added: %s %s", DBG_GM_GO(lava), DBG_PM_BODY(lava->GetBody(), "Lava").c_str());
     //objectList.push_back(lava);
@@ -201,8 +205,7 @@ GameObject* ObjectManager::CreateBox(float x, float y, float w, float h, glm::ve
     b2Body* physBody = physicsMgr->AddBox(x, y, w * LVL_SCALE, h * LVL_SCALE, 0, bodyType, fixtureData, 0.5f, 0.5f);
 
     GameObject* object = new GameObject(physBody, w * LVL_SCALE, h * LVL_SCALE, color);
-    object->m_type = Objects::Object;
-    object->Init(Objects::Object, 0);
+    object->Init(Objects::Object, 2);
 
     b2BodyUserData data;
     data.pointer = reinterpret_cast<uintptr_t>(object);
@@ -242,9 +245,10 @@ GameObject* ObjectManager::AddLeftWall(float offX, float &y)
     float h = (lwallSize.y - LVL_OVERLAP);
     y += h;
 
+    FixtureData fixtureDef = LVL_FIXTURE(1 << Category::World);
     GameObject* object = CreateBoxPhysicsObject({ (-offX - lwallSize.x * 0.0f), (y - h) }, lwallSize, { 1, 0 }, 0,
-                                                lwallTex, staticBody, LVL_FIXTURE);
-    object->Init(Objects::Wall, 3);
+                                                lwallTex, staticBody, &fixtureDef);
+    object->Init(Objects::Wall, 4);
 
     // fill gabs
     if (texType == Textures::Lvl_Wall_Left_Big_0)
@@ -277,9 +281,10 @@ GameObject* ObjectManager::AddRightWall(float offX, float &y)
     float h = (rwallSize.y - LVL_OVERLAP);
     y += h;
 
+    FixtureData fixtureDef = LVL_FIXTURE(1 << Category::World);
     GameObject* object = CreateBoxPhysicsObject({ (offX + rwallSize.x * 0.0f), (y - h) }, rwallSize, { 0, 0 }, 0,
-                                                rwallTex, staticBody, LVL_FIXTURE);
-    object->Init(Objects::Wall, 3);
+                                                rwallTex, staticBody, &fixtureDef);
+    object->Init(Objects::Wall, 4);
 
     // fill gabs
     if (texType == Textures::Lvl_Wall_Right_Big_0)
@@ -310,9 +315,10 @@ GameObject* ObjectManager::AddPlatform(float x, float y, glm::vec2 org, float an
     float h = (texSize.y - LVL_OVERLAP);
     y += h;
 
+    FixtureData fixtureDef = LVL_FIXTURE(1 << Category::World);
     GameObject* object = CreateBoxPhysicsObject({ (x), (y - h) }, texSize, { org.x,  org.y }, angle,
-                                                tex, staticBody, LVL_FIXTURE);
-    object->Init(Objects::Platform, 1);
+                                                tex, staticBody, &fixtureDef);
+    object->Init(Objects::Platform, 2);
 
     DBG_OUTPUT("Added: %s %s", DBG_GM_GO(object), DBG_PM_BODY(object->GetBody(), "LVL_PLATFORM").c_str());
     //objectList.push_back(object);
@@ -327,12 +333,14 @@ GameObject* ObjectManager::AddSawblade(float x, float y)
     float d = -sign(x);
     float r = (sawSize.x + sawSize.y) * 0.5f;
 
-    b2Body* physBody = physicsMgr->AddCircle(x * LVL_SCALE, y * LVL_SCALE, r * 0.40f * LVL_SCALE, kinematicBody, &FixtureData::METAL);
+    FixtureData fixtureDef = FixtureData::Category(FixtureData::METAL, 1 << Category::Interactive);
+    b2Body* physBody = physicsMgr->AddCircle(x * LVL_SCALE, y * LVL_SCALE, r * 0.40f * LVL_SCALE, kinematicBody, &fixtureDef);
 
-    b2Body* sensorBody = physicsMgr->AddCircle(x * LVL_SCALE, y * LVL_SCALE, r * 0.46f * LVL_SCALE, staticBody, &FixtureData::SENSOR);
+    FixtureData fixtureDef2 = FixtureData::Category(FixtureData::SENSOR, 1 << Category::Interactive);
+    b2Body* sensorBody = physicsMgr->AddCircle(x * LVL_SCALE, y * LVL_SCALE, r * 0.46f * LVL_SCALE, staticBody, &fixtureDef2);
 
 #if DEBUG
-    sensorBody->_debug = "sawblade_sensor";
+    //sensorBody->_debug = "sawblade_sensor";
 #endif
 
     b2RevoluteJointDef jointDef;
@@ -346,7 +354,7 @@ GameObject* ObjectManager::AddSawblade(float x, float y)
     physBody->SetAngularVelocity(SAW_ROT_SPEED * -d);
 
     GameObject* object = new GameObject(physBody, sawTex, { (sawSize.x * d) * LVL_SCALE, sawSize.y * LVL_SCALE }, { 0.5f, 0.5f });
-    object->Init(Objects::SawBlade, 2);
+    object->Init(Objects::SawBlade, 3);
 
     b2BodyUserData data;
     data.pointer = reinterpret_cast<uintptr_t>(object);
@@ -362,11 +370,12 @@ GameObject* ObjectManager::AddSpike(float x, float y, float angle)
     auto spikeTex = textures[Textures::Spike];
     auto spikeSize = glm::vec2(spikeTex.Get()->GetWidth(), spikeTex.Get()->GetHeight());
 
+    FixtureData fixtureDef2 = FixtureData::Category(FixtureData::SENSOR, 1 << Category::Interactive);
     b2Body* physBody = physicsMgr->AddBox((x)* LVL_SCALE, (y)* LVL_SCALE,
-        (float)spikeSize.x * LVL_SCALE, (float)spikeSize.y * LVL_SCALE, angle, staticBody, &FixtureData::SENSOR);
+        (float)spikeSize.x * LVL_SCALE, (float)spikeSize.y * LVL_SCALE, angle, staticBody, &fixtureDef2);
 
     GameObject* object = new GameObject(physBody, spikeTex, { spikeSize.x * LVL_SCALE, spikeSize.y * LVL_SCALE }, { .5f, .5f });
-    object->Init(Objects::Spike, 2);
+    object->Init(Objects::Spike, 3);
 
     DBG_OUTPUT("Added: %s %s", DBG_GM_GO(object), DBG_PM_BODY(physBody, "LVL_SPIKE").c_str());
     objectList.push_back(object);

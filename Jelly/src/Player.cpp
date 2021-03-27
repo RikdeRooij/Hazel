@@ -1,5 +1,6 @@
 #include "Player.h"
 #include "Hazel/Core/Input.h"
+#include "AudioManager.h"
 
 using namespace Jelly;
 
@@ -69,4 +70,13 @@ Character::Input Player::UpdateInput()
                         IsKeyPressed(Hazel::Key::Down, Hazel::Key::S));
     input.update_move = true;
     return input;
+}
+
+void Jelly::Player::Die()
+{
+    if (dead)
+        return;
+    Character::Die();
+    //AudioManager::PlayFile("assets/Sounds/laser6.wav");
+    AudioManager::PlaySoundType(Sounds::PlayerDie);
 }

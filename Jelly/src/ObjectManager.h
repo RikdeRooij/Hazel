@@ -11,8 +11,9 @@
 #include "Enemy.h"
 
 #define LVL_SCALE 0.01f
-//#define LVL_FIXTURE &FixtureData::DEFAULT // BOX2D
-#define LVL_FIXTURE &FixtureData::LEVEL
+
+//#define LVL_FIXTURE &FixtureData::LEVEL
+#define LVL_FIXTURE(cat) (FixtureData::Category(FixtureData::LEVEL, cat))
 
 namespace Jelly
 {
@@ -56,6 +57,7 @@ namespace Jelly
         ~ObjectManager();
 
         PhysicsManager* GetPhysicsMgr();
+
         auto GetObjectCount() const { return objectList.size(); }
         auto GetObjectList() const { return objectList; }
 
@@ -92,7 +94,7 @@ namespace Jelly
     protected:
 
         GameObject* CreateBoxPhysicsObject(glm::vec2 pos, glm::vec2 size, glm::vec2 origin, float angle, TextureRef tex,
-                                           const BodyType bodyType = staticBody, const FixtureData * fixtureData = LVL_FIXTURE)
+                                           const BodyType bodyType, const FixtureData * fixtureData)
         {
             b2Body* physBody = physicsMgr->AddBox((pos.x) * LVL_SCALE, (pos.y) * LVL_SCALE,
                 (size.x - 1) * LVL_SCALE, (size.y - 1) * LVL_SCALE,

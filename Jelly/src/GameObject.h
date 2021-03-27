@@ -8,25 +8,22 @@
 #include "Globals.h"
 #include "TextureRef.h"
 
-#define STRINGIFY(s) STRY(s)
-#define STRY(s) #s
-
 namespace Jelly
 {
     namespace Objects
     {
-        enum Type
+        enum Type : int8
         {
             Unknown = 0,
 
             Background,
 
             Player,
+            Enemy,
             Object,
 
             Ground,
             Platform,
-            Enemy,
 
             Spike,
             SawBlade,
@@ -41,10 +38,30 @@ namespace Jelly
         static const char * EnumStrings[] = {
             STRY(Unknown), STRY(Background),
             STRY(Player), STRY(Object),
-            STRY(Ground), STRY(Platform),
             STRY(Enemy),
+            STRY(Ground), STRY(Platform),
             STRY(Spike), STRY(SawBlade),
             STRY(Wall), STRY(Lava), STRY(MAX_COUNT) };
+    }
+
+    namespace Category
+    {
+        enum Type : int8
+        {
+            Unknown = 0,
+
+            Player,
+            Enemy,
+
+            World,
+            Interactive,
+
+            MAX_COUNT = 8
+        };
+
+        static const char * EnumStrings[] = {
+            STRY(Unknown), STRY(Player), STRY(Enemy),
+            STRY(World), STRY(Interactive), STRY(MAX_COUNT) };
     }
 
     class GameObject
@@ -131,6 +148,5 @@ namespace Jelly
 
     public:
         bool destroyed = false;
-
     };
 }

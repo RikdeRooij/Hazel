@@ -5,6 +5,7 @@ using namespace Jelly;
 
 // re-declare statics
 ObjectManager* Jelly::JellyGame::objectManager;
+AudioManager* Jelly::JellyGame::audioManager;
 
 JellyGame::JellyGame()
     : Layer("JellyGame"), m_CameraController(1280.0f / 720.0f, true), debugDraw(nullptr), player(nullptr), lava(nullptr), clockStart(0)
@@ -19,6 +20,8 @@ void JellyGame::OnAttach()
 
     OnResize(float(Hazel::Application::Get().GetWindow().GetWidth()), float(Hazel::Application::Get().GetWindow().GetHeight()));
     m_CameraController.OnResize(m_ScreenWidth, m_ScreenHeight);
+
+    audioManager = new AudioManager();
 
     // Init here
     lavaParticle.LifeTime = 1.0f;
@@ -43,6 +46,7 @@ void JellyGame::OnAttach()
 
 void JellyGame::OnDetach()
 {
+    delete audioManager;
     DestroyGame();
     HZ_PROFILE_FUNCTION();
 }
@@ -71,8 +75,9 @@ void JellyGame::StartGame()
 #else
         0;
 #endif
-    
-    //objectManager->CreateEnemy(-startX, 300 - (20 + 13), 40);
+#if DEBUG
+    objectManager->CreateEnemy(-startX, 300 - (20 + 13), 40);
+#endif
     this->player = objectManager->CreatePlayer(startX, -13, 50);
 
     this->lava = objectManager->CreateLava(0, -800, 600 * 4, 200 * 4);
@@ -97,7 +102,7 @@ void JellyGame::DestroyGame() const
 }
 
 
-#define DRAW_LAYER_COUNT 3
+#define DRAW_LAYER_COUNT 4
 
 #define LVL_DIST_ADD 0.0f
 #define LVL_DIST_DEL 4.0f
@@ -306,8 +311,8 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
         for (int i = 0; i <= DRAW_LAYER_COUNT; i++)
         {
             objectManager->DrawObjects(i);
-            if (i == 0) player->Draw(3);
-            if (i == DRAW_LAYER_COUNT) lava->Draw(3);
+            if (i == 0) player->Draw(DRAW_LAYER_COUNT);
+            if (i == DRAW_LAYER_COUNT) lava->Draw(DRAW_LAYER_COUNT);
         }
 
         m_ParticleSystem.OnRender();

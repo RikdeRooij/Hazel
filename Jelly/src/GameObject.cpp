@@ -1,4 +1,3 @@
-
 #include "GameObject.h"
 #include "Hazel/Renderer/Renderer2D.h"
 #include "ObjectManager.h"
@@ -88,8 +87,8 @@ void GameObject::Init(Objects::Type type, int layer)
     this->m_type = type;
     this->m_draw_layer = layer;
 #if DEBUG
-    if (m_body)
-        m_body->_debug = (Objects::EnumStrings[this->m_type]);
+    //if (m_body)
+    //    m_body->_debug = (Objects::EnumStrings[this->m_type]);
 #endif
 }
 

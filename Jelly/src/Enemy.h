@@ -12,16 +12,17 @@ namespace Jelly
         Enemy(b2Body* bd, TextureAtlas textureRef, float w, float h, float scale);
         ~Enemy();
 
-        void Update(float dt) override;
-        Input UpdateInput() override;
-        void UpdateCollisions(b2Vec2& vel) override;
+        virtual void Update(float dt) override;
+        virtual Input UpdateInput() override;
+        virtual void UpdateCollisions(b2Vec2& vel) override;
+
+        virtual bool OnCollision(b2Manifold* manifold, GameObject* other) override;
 
 
         virtual void Jump(float x, float power) override;
 
 #if DEBUG
-        void DebugDraw() override;
-
+        virtual void DebugDraw() override;
 #endif
 
         float ai_time = 0;

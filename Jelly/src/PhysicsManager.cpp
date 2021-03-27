@@ -200,7 +200,8 @@ b2Body* PhysicsManager::CreatePhysicsObject(float x, float y, float size)
     return innerCircleBody;
 }
 
-b2Body* PhysicsManager::AddBox(float x, float y, float w, float h, float angle, const BodyType bodyType, const FixtureData* fixtureData, float ctrx, float ctry)
+b2Body* PhysicsManager::AddBox(float x, float y, float w, float h, float angle, 
+                               const BodyType bodyType, const FixtureData* fixtureData, float ctrx, float ctry)
 {
     b2BodyDef bodyDef;
     bodyDef.type = static_cast<b2BodyType>(bodyType);
@@ -313,8 +314,11 @@ void PhysicsManager::BeginContact(b2Contact* contact)
     b2Fixture* fixtureA = contact->GetFixtureA();
     b2Fixture* fixtureB = contact->GetFixtureB();
 
-    GameObject* goA = static_cast<GameObject*>(reinterpret_cast<GameObject*>(fixtureA->GetBody()->GetUserData().pointer));
-    GameObject* goB = static_cast<GameObject*>(reinterpret_cast<GameObject*>(fixtureB->GetBody()->GetUserData().pointer));
+    //GameObject* goA = static_cast<GameObject*>(reinterpret_cast<GameObject*>(fixtureA->GetBody()->GetUserData().pointer));
+    //GameObject* goB = static_cast<GameObject*>(reinterpret_cast<GameObject*>(fixtureB->GetBody()->GetUserData().pointer));
+
+    GameObject* goA = GetUserData<GameObject*>(fixtureA);
+    GameObject* goB = GetUserData<GameObject*>(fixtureB);
 
     if (!goA || !goB)
         return;

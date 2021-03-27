@@ -222,6 +222,7 @@ namespace Interpolate
 
 #pragma region [VECTORS]
 
+
 inline float dotProduct(const glm::vec2& lhs, const glm::vec2& rhs) { return lhs.x * rhs.x + lhs.y * rhs.y; }
 inline float crossProduct(const glm::vec2& lhs, const glm::vec2& rhs) { return lhs.x * rhs.y - lhs.y * rhs.x; }
 
@@ -247,7 +248,7 @@ inline glm::vec2 clipVector(const glm::vec2& vector, const glm::vec2& normal, fl
 
 #pragma region [MISC]
 
-// return returns second arg if first is null, return first if first is not null.
+
 template<typename T>
 inline T NullCoalesce(T a, T b) { return a != NULL ? a : b; }
 #define IFNULL( a, b ) ((a) != NULL ? (a) : (b))
@@ -268,6 +269,16 @@ inline T NullCoalesce(T a, T b) { return a != NULL ? a : b; }
 //    int count;
 //};
 
+template <typename T>
+struct instance_holder
+{
+    static T instance;
+};
+
+template <typename T>
+T instance_holder<T>::instance;
+
+
 #pragma endregion [MISC]
 
 
@@ -277,22 +288,19 @@ inline T NullCoalesce(T a, T b) { return a != NULL ? a : b; }
 #pragma region [STRINGS]
 
 
-//#define STR(a) (static_cast<std::ostringstream*>(&(std::ostringstream() << (a)))->str())
-//#define CSTR(a) (static_cast<std::ostringstream*>(&(std::ostringstream() << (a)))->str().c_str())
-//
-//#define STRCAT(a, b, c) (static_cast<std::ostringstream*>(&(std::ostringstream() << (a) << (b) << (c)))->str())
-//#define CSTRCAT(a, b, c) (static_cast<std::ostringstream*>(&(std::ostringstream() << (a) << (b) << (c)))->str().c_str())
+#define STR(a) (std::string(a))
+#define CSTR(a) ((std::string(a)).c_str())
 
-//#define STR(a) (((std::ostringstream() << (a))).str())
-//#define CSTR(a) ((((std::ostringstream() << (a))).str()).c_str())
-//
-//#define STRCAT(a, b, c) ((std::ostringstream() << (a) << (b) << (c)).str())
-//#define CSTRCAT(a, b, c) ((std::ostringstream() << (a) << (b) << (c)).str().c_str())
+#define STRCAT(a, b) (std::string(a) + b)
+#define CSTRCAT(a, b) ((std::string(a) + b).c_str())
+
+#define STRCAT3(a, b, c) ((std::string(a) + b) + c)
+#define CSTRCAT3(a, b, c) (((std::string(a) + b) + c).c_str())
 
 #define STRINGIFY(s) STRY(s)
 #define STRY(s) #s
 
-#define PARENTHESE( s ) ((s) != NULL ? (CSTRCAT("(",CSTR(s),")")) : (""))
+#define PARENTHESE( s ) ((s) != NULL ? (CSTRCAT3("(",CSTR(s),")")) : (""))
 
 // ----------------
 
@@ -354,3 +362,19 @@ void DbgOutput(const char *file, const int line, const char *pFormat, ...);
 
 
 ///////////////////////////////////////////////////////////////////
+
+#undef DECL_ENUM_ELEMENT
+#undef BEGIN_ENUM
+#undef END_ENUM
+
+#ifndef GENERATE_ENUM_STRINGS
+#define DECL_ENUM_ELEMENT( element ) element
+#define BEGIN_ENUM( ENUM_NAME ) typedef enum tag##ENUM_NAME
+#define END_ENUM( ENUM_NAME ) ENUM_NAME; \
+            char* GetString##ENUM_NAME(enum tag##ENUM_NAME index);
+#else
+#define DECL_ENUM_ELEMENT( element ) #element
+#define BEGIN_ENUM( ENUM_NAME ) char* gs_##ENUM_NAME [] =
+#define END_ENUM( ENUM_NAME ) ; char* GetString##ENUM_NAME(enum \
+            tag##ENUM_NAME index){ return gs_##ENUM_NAME [index]; }
+#endif

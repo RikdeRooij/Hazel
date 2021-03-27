@@ -2,7 +2,6 @@
 #include "DebugDraw.h"
 #include "RaysCastCallback.h"
 #include "Player.h"
-#pragma comment(lib, "winmm.lib")
 
 using namespace Jelly;
 
@@ -54,6 +53,8 @@ void Enemy::Update(float dt)
 
 Character::Input Enemy::UpdateInput()
 {
+    if (dead)
+        return Input(false, false, false, false);
     if (!grounded)
     {
         ai_move_left = ai_move_right = false;
@@ -88,7 +89,10 @@ Character::Input Enemy::UpdateInput()
     {
         auto d = player->GetPosition() - GetPosition();
         if (d.y > 0.9f && d.y < 1.6f && abs(d.x) < 1.3f)
-            ai_jump = true;
+        {
+            if((d.x <= 0 && ai_move_left) || (d.x >= 0 && ai_move_right))
+                ai_jump = true;
+        }
     }
 
     Input ninput = Input(ai_move_left, ai_move_right, ai_jump, false);
@@ -99,6 +103,16 @@ Character::Input Enemy::UpdateInput()
 #define RAY_DX 0.8f
 #define RAY_DY 0.5f
 
+
+void ApplyImpulse(RaysCastCallback &callback, Jelly::GameObject * hitgo, int xsign)
+{
+    const float forcex = 7.f;
+    const float forcey = 5.f;
+    auto forcePos = callback.m_point;
+    hitgo->GetBody()->SetLinearVelocity({ 0,0 });
+    hitgo->GetBody()->ApplyLinearImpulse({ xsign * forcex, forcey }, forcePos, true);
+}
+
 void Enemy::UpdateCollisions(b2Vec2& vel)
 {
     auto go_pos = GetPosition();
@@ -106,6 +120,9 @@ void Enemy::UpdateCollisions(b2Vec2& vel)
 
     ai_player_left = false;
     ai_player_right = false;
+
+    if (dead)
+        return;
 
     if (ai_move_left)
     {
@@ -120,6 +137,7 @@ void Enemy::UpdateCollisions(b2Vec2& vel)
             if (hitgo && hitgo->m_type == Objects::Player)
             {
                 ai_player_left = true;
+                ApplyImpulse(callback, hitgo, -1);
             }
         }
     }
@@ -137,16 +155,32 @@ void Enemy::UpdateCollisions(b2Vec2& vel)
             if (hitgo && hitgo->m_type == Objects::Player)
             {
                 ai_player_right = true;
+                ApplyImpulse(callback, hitgo, 1);
             }
         }
     }
+}
+
+bool Jelly::Enemy::OnCollision(b2Manifold* manifold, GameObject* other)
+{
+    if (dead)
+        return false;
+    if (other->m_type != Objects::Player)
+        return true;
+
+    //DBG_OUTPUT("CC %.2f", manifold->localNormal.y);
+    if (manifold->localNormal.y > 0.8f)
+    {
+        Die();
+    }
+
+    return false;
 }
 
 void Jelly::Enemy::Jump(float x, float power)
 {
     Character::Jump(x, min(6.5f, power));
 }
-
 
 #if DEBUG
 void Enemy::DebugDraw()

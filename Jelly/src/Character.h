@@ -39,6 +39,7 @@ namespace Jelly
         virtual void UpdateCollisions(b2Vec2& vel);
         virtual void UpdateMove(Input input, b2Vec2& vel);
 
+        virtual bool OnCollision(b2Manifold* manifold, GameObject* other) { return true; }
 
         virtual void MoveX(float power) const;
         virtual void Jump(float x, float power);

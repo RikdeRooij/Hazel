@@ -17,5 +17,8 @@ namespace Jelly
         ~Player();
 
         Input UpdateInput() override;
+
+        virtual void Die() override;
+
     };
 }

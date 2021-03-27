@@ -4,6 +4,7 @@
 #include <box2d/box2d.h>
 
 #include <list>
+#include "GameObject.h"
 
 
 #define P_GRAVITY -9.81f
@@ -56,6 +57,11 @@ namespace Jelly
         //std::list<b2Body*> getphysicsObjectList() const { return physicsObjectList; }
         auto GetObjectCount() const { return physicsObjectList.size(); }
 
+        template <typename T>
+        static T GetUserData(b2Fixture* fixture) { return fixture ? GetUserData<T>(fixture->GetBody()) : nullptr; }
+        template <typename T>
+        static T GetUserData(b2Body* body) { return body ? reinterpret_cast<T>(body->GetUserData().pointer) : nullptr; }
+
         // Add physics object
         void AddPhysicsObject(b2Body* body);
         b2Body* CreatePhysicsObject(float x, float y, float size);
@@ -96,6 +102,7 @@ namespace Jelly
             restitution = 0.0f;
             density = 0.0f;
             isSensor = false;
+            filter = b2Filter();
         }
 
         /// Use this to store application specific fixture data.
@@ -118,14 +125,11 @@ namespace Jelly
             fixtureDef.shape = nullptr;
 
             //fixtureDef.userData = this->userData;
-#if DEBUG
-            //fixtureDef._debug = this->userData;
-#endif
-
             fixtureDef.friction = this->friction;
             fixtureDef.restitution = this->restitution;
             fixtureDef.density = this->density;
             fixtureDef.isSensor = this->isSensor;
+            fixtureDef.filter = this->filter;
             return fixtureDef;
         }
 
@@ -142,6 +146,13 @@ namespace Jelly
             isSensor = sensor; this->filter = filter; 
             this->userData = userData;
             this->density = 0.0f; this->friction = 0.2f; this->restitution = 0.0f;
+        }
+
+        static FixtureData Category(FixtureData fixtureData, uint16 categoryBits)
+        {
+            auto copy = FixtureData(fixtureData);
+            copy.filter.categoryBits = categoryBits;
+            return copy;
         }
 
         // Predefined fixtures.

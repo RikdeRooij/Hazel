@@ -6,6 +6,7 @@
 #include "ObjectManager.h"
 #include "ParticleSystem.h"
 #include "OrthographicCameraController.h"
+#include "AudioManager.h"
 
 namespace Jelly
 {
@@ -52,6 +53,7 @@ namespace Jelly
         float m_AspectRatio = 1;
 
         static ObjectManager* objectManager;
+        static AudioManager* audioManager;
         DebugDraw* debugDraw;
 
         Player* player;
