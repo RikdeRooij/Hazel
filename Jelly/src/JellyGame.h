@@ -10,11 +10,13 @@
 
 namespace Jelly
 {
-    class JellyGame : public Hazel::Layer
+    class JellyGame : public Hazel::Layer, private instance_holder<JellyGame*>
     {
     public:
+        static JellyGame* GetInstance() { return instance; }
+
         JellyGame();
-        virtual ~JellyGame() = default;
+        virtual ~JellyGame();
 
         virtual void OnAttach() override;
         virtual void OnDetach() override;
@@ -43,6 +45,13 @@ namespace Jelly
                 m_ParticleSystem.Emit(particleProps);
         }
         */
+
+        static void ShakeScreen()
+        {
+            auto x = GetInstance();
+            if(x) x->screenShake = 0.15f;
+        }
+
     private:
         void beginDraw() { Hazel::Renderer2D::BeginScene(m_CameraController.GetCamera()); }
         void endDraw() const { Hazel::Renderer2D::EndScene(); }
@@ -62,12 +71,16 @@ namespace Jelly
         ulong playerScoreY = 0;
         ulong playerScoreMaxY = 0;
         ulong playerScoreBestMaxY = 0;
+        ulong playerScoreBestMaxY_prev = 0;
 
         bool startFrame = true;
+        bool startedMove = false;
+        bool newBest = false;
         clock_t clockStart;
         float dt_next = 0;
         unsigned int avg_counter = 0;
         float avg_fps = 0;
+        float screenShake = 0;
 
         ParticleProps lavaParticle;
         ParticleSystem m_ParticleSystem;

@@ -146,7 +146,7 @@ Enemy* ObjectManager::CreateEnemy(float x, float y, float size)
                                       BodyType::dynamicBody, &fixtureDef, 0.5f, 0.55f);
 
     //TextureAtlas textureRef = TextureRef(Hazel::Texture2D::Create("assets/Jelly2.png"));
-    TextureAtlas textureRef = TextureAtlas("assets/jelly_anim.xml");
+    TextureAtlas textureRef = TextureAtlas("assets/enemy_anim.xml");
 
     Enemy* enemy = new Enemy(bodyBox, textureRef, size * 1.4f * LVL_SCALE, size * 1.0f * LVL_SCALE, LVL_SCALE);
     enemy->Init(Objects::Enemy, 1);
@@ -242,13 +242,10 @@ GameObject* ObjectManager::AddLeftWall(float offX, float &y)
     auto lwallTex = textures[texType];
     auto lwallSize = glm::vec2(lwallTex.Get()->GetWidth(), lwallTex.Get()->GetHeight());
 
-    float h = (lwallSize.y - LVL_OVERLAP);
-    y += h;
+    //auto go = AddLeftWall(offX, y, lwallSize.x, lwallSize.y, lwallTex);
+    auto go = AddWall(-offX, 1, y, lwallSize.x, lwallSize.y, lwallTex);
 
-    FixtureData fixtureDef = LVL_FIXTURE(1 << Category::World);
-    GameObject* object = CreateBoxPhysicsObject({ (-offX - lwallSize.x * 0.0f), (y - h) }, lwallSize, { 1, 0 }, 0,
-                                                lwallTex, staticBody, &fixtureDef);
-    object->Init(Objects::Wall, 4);
+    float h = (lwallSize.y - LVL_OVERLAP);
 
     // fill gabs
     if (texType == Textures::Lvl_Wall_Left_Big_0)
@@ -266,9 +263,7 @@ GameObject* ObjectManager::AddLeftWall(float offX, float &y)
         AddSpikes(-(offX - SPIKE_OFFSET), y, -90);
     }
 
-    DBG_OUTPUT("Added: %s %s", DBG_GM_GO(object), DBG_PM_BODY(object->GetBody(), "LVL_L_WALL").c_str());
-    //objectList.push_back(object);
-    return object;
+    return go;
 }
 
 // y-in = @bottom, y-out = @top
@@ -278,13 +273,10 @@ GameObject* ObjectManager::AddRightWall(float offX, float &y)
     auto rwallTex = textures[texType];
     auto rwallSize = glm::vec2(rwallTex.Get()->GetWidth(), rwallTex.Get()->GetHeight());
 
-    float h = (rwallSize.y - LVL_OVERLAP);
-    y += h;
+    //auto go = AddRightWall(offX, y, rwallSize.x, rwallSize.y, rwallTex);
+    auto go = AddWall(offX, 0, y, rwallSize.x, rwallSize.y, rwallTex);
 
-    FixtureData fixtureDef = LVL_FIXTURE(1 << Category::World);
-    GameObject* object = CreateBoxPhysicsObject({ (offX + rwallSize.x * 0.0f), (y - h) }, rwallSize, { 0, 0 }, 0,
-                                                rwallTex, staticBody, &fixtureDef);
-    object->Init(Objects::Wall, 4);
+    float h = (rwallSize.y - LVL_OVERLAP);
 
     // fill gabs
     if (texType == Textures::Lvl_Wall_Right_Big_0)
@@ -302,7 +294,54 @@ GameObject* ObjectManager::AddRightWall(float offX, float &y)
         AddSpikes(offX - SPIKE_OFFSET, y, 90);
     }
 
+    return go;
+}
+
+GameObject * ObjectManager::AddLeftWall(float offX, float & y, float tw, float th, TextureRef texture)
+{
+    glm::vec2 lwallSize = { tw, th };
+
+    float h = (lwallSize.y - LVL_OVERLAP);
+    y += h;
+
+    FixtureData fixtureDef = LVL_FIXTURE(1 << Category::World);
+    GameObject* object = CreateBoxPhysicsObject({ (-offX - lwallSize.x * 0.0f), (y - h) }, lwallSize, { 1, 0 }, 0,
+                                                texture, staticBody, &fixtureDef);
+    object->Init(Objects::Wall, 4);
+
+    DBG_OUTPUT("Added: %s %s", DBG_GM_GO(object), DBG_PM_BODY(object->GetBody(), "LVL_L_WALL").c_str());
+    //objectList.push_back(object);
+    return object;
+}
+
+GameObject* ObjectManager::AddRightWall(float offX, float& y, float tw, float th, TextureRef texture)
+{
+    glm::vec2 rwallSize = { tw, th };
+    float h = (rwallSize.y - LVL_OVERLAP);
+    y += h;
+
+    FixtureData fixtureDef = LVL_FIXTURE(1 << Category::World);
+    GameObject* object = CreateBoxPhysicsObject({ (offX + rwallSize.x * 0.0f), (y - h) }, rwallSize, { 0, 0 }, 0,
+                                                texture, staticBody, &fixtureDef);
+    object->Init(Objects::Wall, 4);
+
     DBG_OUTPUT("Added: %s %s", DBG_GM_GO(object), DBG_PM_BODY(object->GetBody(), "LVL_R_WALL").c_str());
+    //objectList.push_back(object);
+    return object;
+}
+
+GameObject* ObjectManager::AddWall(float offX, float originX, float& y, float tw, float th, TextureRef texture)
+{
+    glm::vec2 wallSize = { tw, th };
+    float h = (wallSize.y - LVL_OVERLAP);
+    y += h;
+
+    FixtureData fixtureDef = LVL_FIXTURE(1 << Category::World);
+    GameObject* object = CreateBoxPhysicsObject({ offX, (y - h) }, wallSize, { originX, 0 }, 0,
+                                                texture, staticBody, &fixtureDef);
+    object->Init(Objects::Wall, 4);
+
+    DBG_OUTPUT("Added: %s %s", DBG_GM_GO(object), DBG_PM_BODY(object->GetBody(), "LVL_WALL").c_str());
     //objectList.push_back(object);
     return object;
 }
@@ -490,6 +529,8 @@ void ObjectManager::GenerateLevel(float y)
         UpdateLevel(y);
 }
 
+#define LVL_SIDE_CHANCE 0.5f
+
 void ObjectManager::UpdateLevel(float y)
 {
     y = y / LVL_SCALE;
@@ -499,11 +540,73 @@ void ObjectManager::UpdateLevel(float y)
     if (lvl_c_y < y)
         AddBackground(lvl_c_y);
 
+    static bool wall_side_l = false;
+    static bool wall_side_r = false;
+    static float wall_sidew_l = 0;
+    static float wall_sidew_r = 0;
+
     if (lvl_l_y < y)
-        AddLeftWall(wallOffX, lvl_l_y);
+    {
+        if (lvl_l_y > (LVL_END_Y * 0.5f) && (randfunc(0.0f, 1.0f) < LVL_SIDE_CHANCE))
+        {
+            if (!wall_side_l)
+            {
+                auto floor = AddPlatform(-wallOffX, lvl_l_y, { 1, 0 }, 0, Textures::Lvl_Platform_1);
+                floor->m_type = Objects::Ground;
+                lvl_l_y += floor->GetHeight() / LVL_SCALE - LVL_OVERLAP;
+                wall_sidew_l = floor->GetWidth();
+            }
+            wall_side_l = true;
+            Textures::Type texType = RandomTexture(Textures::Lvl_Wall_Left_Small_0, Textures::Lvl_Wall_Left_Small_1);
+            auto lwallTex = textures[texType];
+            auto lwallSize = glm::vec2(lwallTex.Get()->GetWidth(), lwallTex.Get()->GetHeight());
+            AddWall(-(wallOffX + wall_sidew_l / LVL_SCALE - lwallSize.x - (LVL_OVERLAP * 2)), 1,
+                    lvl_l_y, lwallSize.x, lwallSize.y, lwallTex);
+        }
+        else
+        {
+            if (wall_side_l)
+            {
+                auto floor2 = AddPlatform(-wallOffX, lvl_l_y, { 1, 0 }, 0, Textures::Lvl_Platform_1);
+                floor2->m_type = Objects::Ground;
+                lvl_l_y += floor2->GetHeight() / LVL_SCALE - LVL_OVERLAP;
+            }
+            wall_side_l = false;
+            AddLeftWall(wallOffX, lvl_l_y);
+        }
+    }
 
     if (lvl_r_y < y)
-        AddRightWall(wallOffX, lvl_r_y);
+    {
+        if (lvl_r_y > (LVL_END_Y * 0.5f) && (randfunc(0.0f, 1.0f) < LVL_SIDE_CHANCE))
+        {
+            if (!wall_side_r)
+            {
+                auto floor = AddPlatform(wallOffX, lvl_r_y, { 0, 0 }, 0, Textures::Lvl_Platform_1);
+                floor->m_type = Objects::Ground;
+                lvl_r_y += floor->GetHeight() / LVL_SCALE - LVL_OVERLAP;
+                wall_sidew_r = floor->GetWidth();
+            }
+            wall_side_r = true;
+
+            Textures::Type texType = RandomTexture(Textures::Lvl_Wall_Right_Small_0, Textures::Lvl_Wall_Right_Small_1);
+            auto rwallTex = textures[texType];
+            auto rwallSize = glm::vec2(rwallTex.Get()->GetWidth(), rwallTex.Get()->GetHeight());
+            AddWall(wallOffX + wall_sidew_r / LVL_SCALE - rwallSize.x - (LVL_OVERLAP*2), 0,
+                    lvl_r_y, rwallSize.x, rwallSize.y, rwallTex);
+        }
+        else
+        {
+            if (wall_side_r)
+            {
+                auto floor2 = AddPlatform(wallOffX, lvl_r_y, { 0, 0 }, 0, Textures::Lvl_Platform_1);
+                floor2->m_type = Objects::Ground;
+                lvl_r_y += floor2->GetHeight() / LVL_SCALE - LVL_OVERLAP;
+            }
+            wall_side_r = false;
+            AddRightWall(wallOffX, lvl_r_y);
+        }
+    }
 
     if (lvl_y < y)
     {
@@ -567,8 +670,8 @@ int ObjectManager::Remove(GameObject* go)
 
 void ObjectManager::UpdateStep(float dt)
 {
-    UpdateObjects(dt);
     physicsMgr->Update(dt);
+    UpdateObjects(dt);
 }
 
 void ObjectManager::UpdateObjects(float dt)

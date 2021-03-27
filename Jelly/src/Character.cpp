@@ -170,6 +170,8 @@ Character::Input Character::UpdateInput()
 
 void Character::UpdateCollisions(b2Vec2& vel)
 {
+    if (dead)
+        return;
     auto go_pos = GetPosition();
 
     grounded = false;
@@ -185,9 +187,11 @@ void Character::UpdateCollisions(b2Vec2& vel)
     psc_pos = { 0,0 };
     psc_normal = { 0,0 };
     int ceCount = 0;
-    auto celist = GetBody()->GetContactList();
-    for (b2ContactEdge* ce = celist; ce; ce = ce->next)
+    auto body = GetBody();
+    for (const b2ContactEdge* ce = body->GetContactList(); ce; ce = ce->next)
     {
+        if (!ce)
+            continue;
         b2Contact* c = ce->contact;
 
         b2Fixture* fixtureA = c->GetFixtureA();
@@ -206,7 +210,11 @@ void Character::UpdateCollisions(b2Vec2& vel)
         if (manifold->pointCount <= 0)
             continue;
 
-        if (!OnCollision(manifold, other))
+        b2Vec2 localNormal = manifold->localNormal;
+        if (goA != this)
+            localNormal = -localNormal;
+
+        if (!OnCollision(localNormal, other))
             continue;
 
         b2WorldManifold worldManifold;
@@ -471,8 +479,6 @@ void Character::Die()
     dead = true;
 
     GetBody()->SetAwake(false);
-    if (!GetBody()->GetWorld()->IsLocked())
-        GetBody()->SetEnabled(false);
 
     SetColor({ 1,1,1,0.1f });
 

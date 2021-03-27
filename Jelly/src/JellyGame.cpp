@@ -10,8 +10,14 @@ AudioManager* Jelly::JellyGame::audioManager;
 JellyGame::JellyGame()
     : Layer("JellyGame"), m_CameraController(1280.0f / 720.0f, true), debugDraw(nullptr), player(nullptr), lava(nullptr), clockStart(0)
 {
+    instance = this;
     m_CameraController.SetZoomLevel(2.5f);
     m_CameraController.OnResize(1280, 720);
+}
+
+JellyGame::~JellyGame()
+{
+    instance = nullptr;
 }
 
 void JellyGame::OnAttach()
@@ -76,18 +82,21 @@ void JellyGame::StartGame()
         0;
 #endif
 #if DEBUG
-    objectManager->CreateEnemy(-startX, 300 - (20 + 13), 40);
+    //objectManager->CreateEnemy(-startX, 300 - (20 + 13), 40);
 #endif
     this->player = objectManager->CreatePlayer(startX, -13, 50);
 
     this->lava = objectManager->CreateLava(0, -800, 600 * 4, 200 * 4);
 
+    playerScoreBestMaxY_prev = playerScoreBestMaxY;
     playerScoreY = 0;
     playerScoreMaxY = 0;
     //playerScoreBestMaxY = 0;
+    newBest = playerScoreBestMaxY_prev <= 0;
 
     clockStart = clock();
     startFrame = true;
+    startedMove = false;
 }
 
 void JellyGame::DestroyGame() const
@@ -104,7 +113,7 @@ void JellyGame::DestroyGame() const
 
 #define DRAW_LAYER_COUNT 4
 
-#define LVL_DIST_ADD 0.0f
+#define LVL_DIST_ADD 2.0f
 #define LVL_DIST_DEL 4.0f
 
 
@@ -114,7 +123,7 @@ void JellyGame::DestroyGame() const
 #define LAVA_MAX_DIST (400.0f)
 
 
-glm::vec2 UpdateLava(GameObject* lava, float dt, float viewY)
+glm::vec2 UpdateLava(GameObject* lava, float dt, float viewY, bool move)
 {
 #if DEBUG
     viewY -= 3.f;
@@ -128,7 +137,7 @@ glm::vec2 UpdateLava(GameObject* lava, float dt, float viewY)
     if (lavaPos.y > viewY)
         lavaAddSpeed = -(lavaPos.y - viewY);
 
-    lava->GetBody()->SetLinearVelocity(b2Vec2(0, (LAVA_MOVE_SPEED + lavaAddSpeed)));
+    lava->GetBody()->SetLinearVelocity(b2Vec2(0, !move ? 0 : (LAVA_MOVE_SPEED + lavaAddSpeed)));
 
     auto lavaoffs = lava->GetTilingOffset();
     lavaoffs.x += dt * 0.08f;
@@ -202,7 +211,21 @@ void JellyGame::UpdateGame(Hazel::Timestep& ts)
     float dt = ts.GetSeconds();
 
     auto runSeconds = ((double)(clock() - clockStart) / CLOCKS_PER_SEC);
-    m_CameraController.SetCameraRotation((float)sin(runSeconds * 0.67) * 1.5f);
+    if (!startedMove) runSeconds = 0;
+
+
+    if (Hazel::Input::BeginKeyPress(Hazel::Key::B))
+        screenShake = 0.2f;
+
+    float camAngle = (float)sin(runSeconds * 0.67) * 1.5f;
+    if (screenShake > 0)
+    {
+        screenShake -= ts.GetSeconds();
+        camAngle = Interpolate::Linearf(m_CameraController.GetCameraRotation(),
+                                        (Random::Float() - 0.5f) * (screenShake+0.2f) * 25,
+                                        0.1f);
+    }
+    m_CameraController.SetCameraRotation(camAngle);
     lava->GetBody()->SetTransform(lava->GetBody()->GetPosition(), ((float)sin(runSeconds * 0.67) * 1.5f * DEG2RAD));
 
     //glm::vec3 cam_pos = m_CameraController.GetCamera().GetPosition();
@@ -215,16 +238,25 @@ void JellyGame::UpdateGame(Hazel::Timestep& ts)
 
     objectManager->UpdateStep(dt);
     glm::vec2 player_pos = UpdatePlayer(player, dt, m_CameraController);
-    auto lavaPos = UpdateLava(lava, dt, player_pos.y);
+
+    auto lavaPos = UpdateLava(lava, dt, player_pos.y, startedMove);
     UpdateLavaParticles(lavaParticle, lavaPos, dt);
 
     objectManager->UpdateLevel(cam_pos.y + zoom + LVL_DIST_ADD);
     float delBelow = std::min(lavaPos.y, cam_pos.y - zoom);
     objectManager->RemoveObjectsBelow(delBelow - LVL_DIST_DEL);
 
-    auto velo = player->GetBody()->GetLinearVelocity();
-    const float velo_power = 0;
-    glm::vec2 look_pos = { player_pos.x + velo.x * RATIO * velo_power, player_pos.y + 0.5f + velo.y * RATIO * velo_power };
+    float camyoff = 0.5f - (1.0f - clamp01((player_pos.y - lavaPos.y - 1.0f) * 0.5f));
+
+    static bool fixedCamPos = false;
+    if (Hazel::Input::BeginKeyPress(Hazel::Key::C))
+        fixedCamPos = !fixedCamPos;
+    glm::vec2 look_pos = { player_pos.x, player_pos.y + camyoff };
+    const float look_limit = 1.0f;
+    float llf = clamp01(abs(look_pos.x) - look_limit);
+    look_pos.x = fixedCamPos ? 0.0f : Interpolate::Linearf(look_pos.x, clamp(look_pos.x, -look_limit, look_limit), llf * 0.5f);
+    if (look_pos.y < 1.2f) look_pos.y = 1.2f;
+
     auto newctr = glm::vec3(
         Interpolate::Linear(cam_pos.x, look_pos.x, dt * 2.f),
         Interpolate::Linear(cam_pos.y, look_pos.y, dt * 2.f),
@@ -233,7 +265,21 @@ void JellyGame::UpdateGame(Hazel::Timestep& ts)
     m_CameraController.SetCameraPosition(newctr);
 
     playerScoreY = static_cast<ulong>(round(max(player->GetPosition().y * 2, 0.f)));
+    if (!startedMove && dt > 0)
+    {
+        if (playerScoreY > playerScoreMaxY)
+        {
+            startedMove = true;
+            clockStart = clock();
+        }
+    }
+
     playerScoreMaxY = max(playerScoreMaxY, playerScoreY);
+    if (playerScoreMaxY >= playerScoreBestMaxY && !newBest)
+    {
+        newBest = true;
+        AudioManager::PlaySoundType(Sounds::Powerup);
+    }
     playerScoreBestMaxY = max(playerScoreBestMaxY, playerScoreMaxY);
 
     if (Hazel::Input::BeginMouseButtonPress(Hazel::Mouse::ButtonLeft))
@@ -289,9 +335,8 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
     if (Hazel::Input::BeginKeyPress(Hazel::Key::P))
     {
         auto oneway = objectManager->GetPhysicsMgr()->oneWayPlatforms;
-        if (++oneway > 2) oneway = 0;
+        if (++oneway > 4) oneway = 0;
         objectManager->GetPhysicsMgr()->oneWayPlatforms = oneway;
-        objectManager->GetPhysicsMgr()->m_numFootContacts = 0;
     }
 
 
@@ -316,6 +361,12 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
         }
 
         m_ParticleSystem.OnRender();
+
+        if (playerScoreBestMaxY_prev > 0)
+        {
+            glm::vec4 bcolor = playerScoreMaxY >= playerScoreBestMaxY_prev ? glm::vec4( 0, 1, 0, 0.5f ) : glm::vec4( 1, 0, 0, 0.5f );
+            DebugDraw::DrawRay({ -10, playerScoreBestMaxY_prev * 0.5f - 0.5f }, { 20.0f, 0 }, bcolor);
+        }
 
         Hazel::Renderer2D::EndScene();
 
@@ -357,7 +408,7 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
                 for (std::list<GameObject*>::iterator iter = objectList.begin(); iter != objectList.end(); ++iter)
                 {
                     auto obj_body = (*iter)->GetBody();
-                    if (obj_body)
+                    if (obj_body && obj_body->IsEnabled())
                     {
                         auto obj_fixlist = obj_body->GetFixtureList();
                         if (obj_fixlist)
@@ -416,6 +467,8 @@ ImGuiWindowFlags SetWindowPos(int corner = -1, float xDistance = 10.0f, float yD
     return window_flags;
 }
 
+#define ARG_VEC2(v) v.x, v.y
+
 void JellyGame::OnImGuiRender()
 {
     HZ_PROFILE_FUNCTION();
@@ -438,6 +491,7 @@ void JellyGame::OnImGuiRender()
         ImGui::Text("  Best Highscore: %d", (playerScoreBestMaxY));
         ImGui::Separator();
         auto runSeconds = ((double)(clock() - clockStart) / CLOCKS_PER_SEC);
+        if (!startedMove) runSeconds = 0;
         ImGui::Text("  Time: %.1f", (round(runSeconds * 5) * .2));
         ImGui::Text("  Current Highscore: %d", (playerScoreMaxY));
         ImGui::Text("  Score: %d", (playerScoreY));
@@ -488,30 +542,27 @@ void JellyGame::OnImGuiRender()
         ImGui::Separator();
 
         ImGui::Text("Player:");
+        ImGui::Text("  pos: %.1f, %.1f", ARG_VEC2(player->GetPosition()));
+        ImGui::Text("  velocity: %.1f, %.1f", ARG_VEC2(player->GetBody()->GetLinearVelocity()));
         ImGui::Text("  speed: %.2f", (player->speed * 10));
         ImGui::Text("  grounded: %d", (player->grounded));
         ImGui::Text("  wallLeft: %d", (player->wallLeft));
         ImGui::Text("  wallRight: %d", (player->wallRight));
         ImGui::Text("  ceiling: %d", (player->ceiling));
         ImGui::Text("  inside: %d", (player->inside));
-        ImGui::Text("  velocity: %.1f, %.1f", player->GetBody()->GetLinearVelocity().x, player->GetBody()->GetLinearVelocity().y);
         ImGui::Text("  damping: %.1f", player->GetBody()->GetLinearDamping());
-
-        glm::vec3 ctr = m_CameraController.GetCameraPosition();
-        auto zoom = m_CameraController.GetZoomLevel();
-        ImGui::Text("  cam.y: %.1f", (ctr.y));
-        ImGui::Text("  zoom: %.1f", (zoom));
-
-        ImGui::Text("  player.y: %.1f", (player->GetPosition().y));
-        auto lavaPos = lava->GetPosition({ 0.5f, 0.05f });
-        ImGui::Text("  lava.y: %.1f", (lavaPos.y));
-
 
         ImGui::Separator();
 
         ImGui::Text("Misc:");
+        glm::vec3 ctr = m_CameraController.GetCameraPosition();
+        auto zoom = m_CameraController.GetZoomLevel();
+        ImGui::Text("  campos: %.1f, %.1f", ARG_VEC2(ctr));
+        ImGui::Text("  zoom: %.1f", (zoom));
+        auto lavaPos = lava->GetPosition({ 0.5f, 0.05f });
+        ImGui::Text("  lava.y: %.1f", (lavaPos.y));
+
         ImGui::Text("  oneWayPlatforms: %d", (objectManager->GetPhysicsMgr()->oneWayPlatforms));
-        ImGui::Text("  m_numFootContacts: %d", (objectManager->GetPhysicsMgr()->m_numFootContacts));
 
         //ImGui::ColorEdit4("Square Color", glm::value_ptr(m_SquareColor));
     }

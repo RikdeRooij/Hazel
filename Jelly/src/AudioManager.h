@@ -19,6 +19,9 @@ namespace Jelly
             Jump3,
 
             PlayerDie,
+            EnemyDie,
+            Hit,
+            Powerup,
 
             MAX_COUNT
         };
@@ -29,6 +32,9 @@ namespace Jelly
             STRY(Jump2),
             STRY(Jump3),
             STRY(PlayerDie),
+            STRY(EnemyDie),
+            STRY(Hit),
+            STRY(Powerup),
             STRY(MAX_COUNT)
         };
     }
@@ -49,6 +55,9 @@ namespace Jelly
             filepaths[Jump2] = "assets/Sounds/jump2.wav";
             filepaths[Jump3] = "assets/Sounds/jump3.wav";
             filepaths[PlayerDie] = "assets/Sounds/laser6.wav";
+            filepaths[EnemyDie] = "assets/Sounds/m_health.wav";
+            filepaths[Hit] = "assets/Sounds/pl_pain6.wav";
+            filepaths[Powerup] = "assets/Sounds/powerUp8.wav";
         }
         ~AudioManager()
         {

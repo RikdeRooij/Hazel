@@ -16,8 +16,9 @@ namespace Jelly
         virtual Input UpdateInput() override;
         virtual void UpdateCollisions(b2Vec2& vel) override;
 
-        virtual bool OnCollision(b2Manifold* manifold, GameObject* other) override;
+        virtual bool OnCollision(b2Vec2 normal, GameObject* other) override;
 
+        virtual void Die() override;
 
         virtual void Jump(float x, float power) override;
 

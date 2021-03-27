@@ -309,6 +309,12 @@ int PhysicsManager::RemovePhysicBodies(int leftLimit, int rightLimit, int upLimi
 
 #pragma region COLLISIONS
 
+void PhysicsManager::InitContact(b2Contact* contact)
+{
+    if (oneWayPlatforms <= 1 || oneWayPlatforms >= 4)
+        contact->SetEnabled(true);
+}
+
 void PhysicsManager::BeginContact(b2Contact* contact)
 {
     b2Fixture* fixtureA = contact->GetFixtureA();
@@ -386,6 +392,9 @@ void PhysicsManager::BeginContact(b2Contact* contact)
             otherFixture = fixtureA;
         }
 
+        //if (!((goA && goA->m_type == Objects::Player) || (goB && goB->m_type == Objects::Player)))
+        //    return;
+
         bool solid = true;
 
         if (platformFixture)
@@ -422,14 +431,7 @@ void PhysicsManager::BeginContact(b2Contact* contact)
             }
         }
 
-        if (solid)
-        {
-            if (goA->m_type == Objects::Player || goB->m_type == Objects::Player)
-            {
-                m_numFootContacts++;
-            }
-        }
-        else
+        if (!solid)
             //no points are moving into platform, contact should not be solid
             contact->SetEnabled(false);
     }
@@ -439,21 +441,6 @@ void PhysicsManager::EndContact(b2Contact* contact)
 {
     if (oneWayPlatforms >= 2)
     {
-        if (contact->IsEnabled())
-        {
-            b2Fixture* fixtureA = contact->GetFixtureA();
-            b2Fixture* fixtureB = contact->GetFixtureB();
-
-            GameObject* goA = static_cast<GameObject*>(reinterpret_cast<GameObject*>(fixtureA->GetBody()->GetUserData().pointer));
-            GameObject* goB = static_cast<GameObject*>(reinterpret_cast<GameObject*>(fixtureB->GetBody()->GetUserData().pointer));
-
-            if (goA && goB)
-            {
-                if (goA->m_type == Objects::Player || goB->m_type == Objects::Player)
-                    if (m_numFootContacts > 0)
-                        m_numFootContacts--;
-            }
-        }
         contact->SetEnabled(true);
     }
 }

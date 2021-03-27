@@ -169,6 +169,7 @@ void b2Contact::Update(b2ContactListener* listener)
 
 	// Re-enable this contact.
 	//m_flags |= e_enabledFlag;
+    listener->InitContact(this);
 
 	bool touching = false;
 	bool wasTouching = (m_flags & e_touchingFlag) == e_touchingFlag;

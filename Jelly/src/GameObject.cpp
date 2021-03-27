@@ -9,6 +9,7 @@ unsigned long GameObject::instanceCount = 0;
 GameObject::GameObject()
 {
     instanceID = instanceCount++;
+    DBG_OUTPUT("GameObject CREATE %d", instanceID);
     dontDestroy = false;
     dontDraw = false;
     m_body = nullptr;
@@ -72,6 +73,7 @@ GameObject::GameObject(b2Body* bd, TextureRef tex, glm::vec2 size, glm::vec2 ori
 
 GameObject::~GameObject()
 {
+    DBG_OUTPUT("GameObject DELETE %d", instanceID);
     if (destroyed)
     {
         ObjectManager::Remove(this);

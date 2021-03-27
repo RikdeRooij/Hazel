@@ -382,6 +382,7 @@ public:
     b2BodyUserData& GetUserData();
 
     /// Set the user data. Use this to store your application specific data.
+    //void SetUserData(void* data);
     void SetUserData(const b2BodyUserData data);
 
     /// Get the parent world of this body.
