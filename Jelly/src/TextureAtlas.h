@@ -20,9 +20,9 @@ namespace Jelly
 
         TextureRef GetTextureRef() const { return texure; }
 
-        std::vector<glm::vec4>& GetRects() { return rects; }
+        const std::vector<glm::vec4>& GetRects() const { return rects; }
         int RectCount() const { return (int)rects.size(); }
-        glm::vec4& GetRect(int i) { return rects[i]; }
+        const glm::vec4& GetRect(int i) const { return rects[i]; }
 
 
         static float AnimTime(const float& animtime, const float &len, const bool pingpong)
@@ -40,7 +40,7 @@ namespace Jelly
             return i < 0u ? 0u : i > exmax - 1 ? exmax - 1 : i;
         }
 
-        glm::vec4& AnimationRect(const float& t, const int& frame_start, const int& frame_length, const bool& pingpong);
+        const glm::vec4& AnimationRect(const float& t, const int& frame_start, const int& frame_length, const bool& pingpong) const;
 
     private:
 

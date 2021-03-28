@@ -79,14 +79,14 @@ namespace Jelly
 
         b2Body* GameObject::GetBody() const { return m_body; }
         glm::vec2 GameObject::GetPosition() const;
-        glm::vec2 GetPosition(glm::vec2 origin) const;
+        glm::vec2 GetPosition(const glm::vec2 origin) const;
 
         float GameObject::GetHeight() const { return this->height; }
         float GameObject::GetWidth() const { return this->width; }
         glm::vec2 GameObject::GetSize() const { return  glm::vec2(this->width, this->height); }
 
         glm::vec4 GameObject::GetColor() const { return m_color; }
-        void GameObject::SetColor(glm::vec4 color) { this->m_color = color; }
+        void GameObject::SetColor(const glm::vec4 color) { this->m_color = color; }
 
         void GameObject::SetTilingFactor(const glm::vec2& tilingFactor) { this->m_texture_tiling = tilingFactor; }
         void GameObject::SetTilingOffset(const glm::vec2& offset) { this->m_texture_offset = offset; }
@@ -111,12 +111,12 @@ namespace Jelly
 
     public:
 
-        virtual void Update(float time);
+        virtual void Update(float dt);
 
-        virtual void Draw(int layer);
+        virtual void Draw(int layer) const;
 
 #if DEBUG
-        virtual void DebugDraw() {}
+        virtual void DebugDraw() const {}
 #endif
 
         Objects::Type m_type = Objects::Unknown;

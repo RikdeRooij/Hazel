@@ -9,7 +9,7 @@ unsigned long GameObject::instanceCount = 0;
 GameObject::GameObject()
 {
     instanceID = instanceCount++;
-    DBG_OUTPUT("GameObject CREATE %d", instanceID);
+    //DBG_OUTPUT("GameObject CREATE %d", instanceID);
     dontDestroy = false;
     dontDraw = false;
     m_body = nullptr;
@@ -73,7 +73,7 @@ GameObject::GameObject(b2Body* bd, TextureRef tex, glm::vec2 size, glm::vec2 ori
 
 GameObject::~GameObject()
 {
-    DBG_OUTPUT("GameObject DELETE %d", instanceID);
+    //DBG_OUTPUT("GameObject DELETE %d", instanceID);
     if (destroyed)
     {
         ObjectManager::Remove(this);
@@ -103,7 +103,7 @@ glm::vec2 GameObject::GetPosition() const
     return glm::vec2(px, py);
 }
 
-glm::vec2 GameObject::GetPosition(glm::vec2 origin) const
+glm::vec2 GameObject::GetPosition(const glm::vec2 origin) const
 {
     //float px = posx + abs(width) * (0.5f - m_origin.x);
     //float py = posy + height * (0.5f - m_origin.y);
@@ -112,7 +112,7 @@ glm::vec2 GameObject::GetPosition(glm::vec2 origin) const
     return glm::vec2(px, py);
 }
 
-void GameObject::Update(float time)
+void GameObject::Update(float dt)
 {
     if (m_body && (m_body->GetType() == b2_dynamicBody || m_body->GetType() == b2_kinematicBody))
     {
@@ -123,7 +123,7 @@ void GameObject::Update(float time)
 }
 
 // Draw the object on the given render target
-void GameObject::Draw(int layer)
+void GameObject::Draw(int layer) const
 {
     if (dontDraw)
         return;

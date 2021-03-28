@@ -227,7 +227,15 @@ GameObject* ObjectManager::AddBackground(float &y)
     int i = (int)(y / bgHeight);
     bool flip = abs(i % 2) == 1;
 
-    GameObject* object = new GameObject(bgTex, { 0, (y - bgHeight) * LVL_SCALE }, { (flip ? -bgSize.x : bgSize.x) * LVL_SCALE, bgSize.y * LVL_SCALE }, { 0.5f, 0.f });
+    GameObject* object = new GameObject(bgTex, 
+                                        { 0, (y - bgHeight) * LVL_SCALE }, 
+                                        { (flip ? -bgSize.x : bgSize.x) * LVL_SCALE, bgSize.y * LVL_SCALE }, 
+                                        { 0.5f, 0.f });
+    float tx = Random::Float();
+    tx = tx < 0.5f ? tx * tx : (1 - ((1 - tx) * (1 - tx)));
+    //tx = tx < 0.5f ? tx * tx : (1 - ((1 - tx) * (1 - tx)));
+    object->SetTilingOffset({ tx, 0 });
+    object->SetTilingFactor({ Random::Float() < 0.8f ? 1 : -1, 1 });
     object->Init(Objects::Background, 0);
 
     DBG_OUTPUT("Added: %s *LVL_BG*", DBG_GM_GO(object));
@@ -295,39 +303,6 @@ GameObject* ObjectManager::AddRightWall(float offX, float &y)
     }
 
     return go;
-}
-
-GameObject * ObjectManager::AddLeftWall(float offX, float & y, float tw, float th, TextureRef texture)
-{
-    glm::vec2 lwallSize = { tw, th };
-
-    float h = (lwallSize.y - LVL_OVERLAP);
-    y += h;
-
-    FixtureData fixtureDef = LVL_FIXTURE(1 << Category::World);
-    GameObject* object = CreateBoxPhysicsObject({ (-offX - lwallSize.x * 0.0f), (y - h) }, lwallSize, { 1, 0 }, 0,
-                                                texture, staticBody, &fixtureDef);
-    object->Init(Objects::Wall, 4);
-
-    DBG_OUTPUT("Added: %s %s", DBG_GM_GO(object), DBG_PM_BODY(object->GetBody(), "LVL_L_WALL").c_str());
-    //objectList.push_back(object);
-    return object;
-}
-
-GameObject* ObjectManager::AddRightWall(float offX, float& y, float tw, float th, TextureRef texture)
-{
-    glm::vec2 rwallSize = { tw, th };
-    float h = (rwallSize.y - LVL_OVERLAP);
-    y += h;
-
-    FixtureData fixtureDef = LVL_FIXTURE(1 << Category::World);
-    GameObject* object = CreateBoxPhysicsObject({ (offX + rwallSize.x * 0.0f), (y - h) }, rwallSize, { 0, 0 }, 0,
-                                                texture, staticBody, &fixtureDef);
-    object->Init(Objects::Wall, 4);
-
-    DBG_OUTPUT("Added: %s %s", DBG_GM_GO(object), DBG_PM_BODY(object->GetBody(), "LVL_R_WALL").c_str());
-    //objectList.push_back(object);
-    return object;
 }
 
 GameObject* ObjectManager::AddWall(float offX, float originX, float& y, float tw, float th, TextureRef texture)
@@ -498,7 +473,7 @@ void ObjectManager::AddPlatforms(float wallOffX)
         // push to other side, randomize lil bit
         rx = randfunc((-rx * LVL_SECONDS_PUSH) - LVL_SECONDS_RAND, (-rx * LVL_SECONDS_PUSH) + LVL_SECONDS_RAND);
 
-        auto go = AddPlatform(wallOffX * rx, lvl_y + randfunc(40, 60), { 1 - ox, 0.f }, 0, Textures::Lvl_Platform_0);
+         AddPlatform(wallOffX * rx, lvl_y + randfunc(40, 60), { 1 - ox, 0.f }, 0, Textures::Lvl_Platform_0);
         //go->setColor({ 0.0f, 1.0f, 1.0f, 1.0f });
         lvl_prev_double = true;
     }
@@ -507,7 +482,8 @@ void ObjectManager::AddPlatforms(float wallOffX)
         if (lvl_y > 500 && (randfunc(0.0f, 1.0f) < LVL_ENEMY_CHANCE))
         {
             auto pp = go->GetPosition({ .5f, 0.f }) / LVL_SCALE;
-            auto enemy = CreateEnemy(pp.x, pp.y, 33);
+            //auto enemy =
+                CreateEnemy(pp.x, pp.y, 33);
             //enemy->GetBody()->SetEnabled(false);
         }
     }
@@ -522,6 +498,9 @@ void ObjectManager::GenerateLevel(float y)
     lvl_r_y = LVL_END_Y;
     lvl_c_y = LVL_END_Y;
     lvl_y = LVL_END_Y - LVL_OFFS_Y;
+    
+    lvl_prev_x = 0; // previous step platform.x
+    lvl_prev_double = false; // placed 2 platforms previous step
 
     UpdateLevel(y);
 
@@ -615,7 +594,7 @@ void ObjectManager::UpdateLevel(float y)
     }
 }
 
-int ObjectManager::RemoveObjectsBelow(float y)
+int ObjectManager::RemoveObjectsBelow(const float y) const
 {
     int count = 0;
     for (std::list<GameObject*>::iterator i = objectList.begin(); i != objectList.end();)
@@ -668,19 +647,19 @@ int ObjectManager::Remove(GameObject* go)
     return 0;
 }
 
-void ObjectManager::UpdateStep(float dt)
+void ObjectManager::UpdateStep(const float dt) const
 {
     physicsMgr->Update(dt);
     UpdateObjects(dt);
 }
 
-void ObjectManager::UpdateObjects(float dt)
+void ObjectManager::UpdateObjects(const float dt) const
 {
     for (std::list<GameObject*>::iterator iter = objectList.begin(); iter != objectList.end(); ++iter)
         (*iter)->Update(dt);
 }
 
-void ObjectManager::DrawObjects(int layer)
+void ObjectManager::DrawObjects(const int layer) const
 {
     for (std::list<GameObject*>::iterator iter = objectList.begin(); iter != objectList.end(); ++iter)
         (*iter)->Draw(layer);

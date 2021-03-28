@@ -72,8 +72,8 @@ void JellyGame::StartGame()
     debugDraw = new DebugDraw(pWorld);
     pWorld->SetDebugDraw(debugDraw);
 
-    glm::vec3 ctr = m_CameraController.GetCamera().GetPosition();
-    objectManager->GenerateLevel(ctr.y);
+    //glm::vec3 ctr = m_CameraController.GetCamera().GetPosition();
+    objectManager->GenerateLevel(0);
 
     float startX =
 #if DEBUG
@@ -242,7 +242,8 @@ void JellyGame::UpdateGame(Hazel::Timestep& ts)
     auto lavaPos = UpdateLava(lava, dt, player_pos.y, startedMove);
     UpdateLavaParticles(lavaParticle, lavaPos, dt);
 
-    objectManager->UpdateLevel(cam_pos.y + zoom + LVL_DIST_ADD);
+    auto lvly = player_pos.y < 2 ? player_pos.y : cam_pos.y; // use player on start (ignore restart cam movement)
+    objectManager->UpdateLevel(lvly + zoom + LVL_DIST_ADD);
     float delBelow = std::min(lavaPos.y, cam_pos.y - zoom);
     objectManager->RemoveObjectsBelow(delBelow - LVL_DIST_DEL);
 
@@ -252,7 +253,7 @@ void JellyGame::UpdateGame(Hazel::Timestep& ts)
     if (Hazel::Input::BeginKeyPress(Hazel::Key::C))
         fixedCamPos = !fixedCamPos;
     glm::vec2 look_pos = { player_pos.x, player_pos.y + camyoff };
-    const float look_limit = 1.0f;
+    const float look_limit = 0.5f;
     float llf = clamp01(abs(look_pos.x) - look_limit);
     look_pos.x = fixedCamPos ? 0.0f : Interpolate::Linearf(look_pos.x, clamp(look_pos.x, -look_limit, look_limit), llf * 0.5f);
     if (look_pos.y < 1.2f) look_pos.y = 1.2f;
@@ -404,7 +405,6 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
                 auto plyr_mins = plyr_aabb.GetCenter() - plyr_aabb.GetExtents();
                 DebugDraw::DrawRay({ plyr_mins.x * RATIO, plyr_mins.y * RATIO }, { 0, -0.5f }, { 1,0,1,1 });
 
-                auto objectList = objectManager->GetObjectList();
                 for (std::list<GameObject*>::iterator iter = objectList.begin(); iter != objectList.end(); ++iter)
                 {
                     auto obj_body = (*iter)->GetBody();
@@ -505,9 +505,9 @@ void JellyGame::OnImGuiRender()
     ImGui::End();
 
 #if DEBUG
-    auto window_flags = SetWindowPos(3);
+    SetWindowPos(3);
     ImGui::SetNextWindowBgAlpha(0.5f);
-    window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize |
+    auto window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize |
         ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
     if (ImGui::Begin("Debug", nullptr, window_flags))
     {

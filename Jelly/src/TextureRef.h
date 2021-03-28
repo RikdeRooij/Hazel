@@ -16,7 +16,7 @@ namespace Jelly
         operator bool() const { return val != nullptr; }
 
         const std::shared_ptr<Hazel::Texture2D>& Get() const { return val; }
-        const bool Has() const { return val != nullptr; }
+        bool Has() const { return val != nullptr; }
 
     private:
         std::shared_ptr<Hazel::Texture2D> val = nullptr;

@@ -193,7 +193,7 @@ void Jelly::Enemy::Die()
 }
 
 #if DEBUG
-void Enemy::DebugDraw()
+void Enemy::DebugDraw() const
 {
     Character::DebugDraw();
 

@@ -28,9 +28,9 @@ namespace Jelly
             bool update_move;
         } Input;
 
-        virtual void Draw(int layer) override;
+        virtual void Draw(int layer) const override;
 #if DEBUG
-        virtual void DebugDraw() override;
+        virtual void DebugDraw() const override;
 #endif
 
         virtual void Update(float dt) override;
@@ -41,9 +41,9 @@ namespace Jelly
 
         virtual bool OnCollision(b2Vec2 normal, GameObject* other) { return true; }
 
-        virtual void MoveX(float power) const;
+        virtual void MoveX(float power);
         virtual void Jump(float x, float power);
-        virtual void Move(float dx, float dy) const;
+        virtual void Move(float dx, float dy);
 
 
         virtual void Explode();

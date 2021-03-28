@@ -23,7 +23,7 @@ namespace Jelly
         virtual void Jump(float x, float power) override;
 
 #if DEBUG
-        virtual void DebugDraw() override;
+        virtual void DebugDraw() const override;
 #endif
 
         float ai_time = 0;

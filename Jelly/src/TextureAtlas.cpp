@@ -77,7 +77,7 @@ TextureRef TextureAtlas::LoadXML(std::string path, std::vector<glm::vec4>& rects
     return itex;
 }
 
-glm::vec4 & TextureAtlas::AnimationRect(const float& t, const int& frame_start, const int& frame_length, const bool& pingpong)
+const glm::vec4 & TextureAtlas::AnimationRect(const float& t, const int& frame_start, const int& frame_length, const bool& pingpong) const
 {
     uint indx = AnimTimeIndex(t, abs(frame_length), pingpong);
     indx = frame_start + (sign(frame_length) * indx);

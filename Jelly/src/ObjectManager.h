@@ -71,10 +71,7 @@ namespace Jelly
 
         GameObject* AddBackground(float &y);
         GameObject* AddLeftWall(float offX, float &y);
-        GameObject* AddLeftWall(float offX, float &y, float tw, float th, TextureRef texture);
         GameObject* AddRightWall(float offX, float &y);
-        GameObject* AddRightWall(float offX, float &y, float tw, float th, TextureRef texture);
-
         GameObject * AddWall(float offX, float originX, float & y, float tw, float th, TextureRef texture);
 
         GameObject* AddPlatform(float x, float y, glm::vec2 org, float angle, Textures::Type type);
@@ -87,13 +84,13 @@ namespace Jelly
         void GenerateLevel(float y);
         void UpdateLevel(float y);
 
-        int RemoveObjectsBelow(float y);
+        int RemoveObjectsBelow(const float y) const;
         static int Remove(GameObject* go);
 
-        void UpdateStep(float dt);
-        void UpdateObjects(float dt);
+        void UpdateStep(const float dt) const;
+        void UpdateObjects(const float dt) const;
 
-        void DrawObjects(int layer);
+        void DrawObjects(const int layer) const;
 
     protected:
 

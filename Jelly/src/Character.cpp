@@ -410,7 +410,14 @@ void Character::UpdateMove(Input input, b2Vec2& vel)
         Move(0.f, -1.f);
     }
 
-
+    if (jumpanim)
+    {
+        const float animspeed = 7.0f;// 4.5f;
+        const uint acnt = 3;
+        //if (animtime * animspeed >= ((acnt - 1) * 2 - 0.1f))
+        if (animtime * animspeed >= (acnt - 0.1f))
+            jumpanim = false;
+    }
     //if (!jumpanim)
     //{
     //    if (key_left != keyleft) animtime = 0;
@@ -420,7 +427,7 @@ void Character::UpdateMove(Input input, b2Vec2& vel)
     key_right = keyright;
 }
 
-void Character::MoveX(float power) const
+void Character::MoveX(float power)
 {
     if (dead)
         return;
@@ -452,7 +459,7 @@ void Character::Jump(float x, float power)
     GetBody()->SetLinearVelocity(impulse);
 }
 
-void Character::Move(float dx, float dy) const
+void Character::Move(float dx, float dy)
 {
     if (dead)
         return;
@@ -491,7 +498,7 @@ void Character::PlayJumpSound(int i) const
     AudioManager::PlaySoundType((Sounds::Type)(Sounds::Jump1 + i));
 }
 
-void Character::Draw(int layer)
+void Character::Draw(int layer) const
 {
     if (dontDraw)
         return;
@@ -530,9 +537,9 @@ void Character::Draw(int layer)
         const float animspeed = 7.0f;// 4.5f;
         const uint acnt = 3;
 
-        //if (animtime * animspeed >= ((acnt - 1) * 2 - 0.1f))
-        if (animtime * animspeed >= (acnt - 0.1f))
-            jumpanim = false;
+        ////if (animtime * animspeed >= ((acnt - 1) * 2 - 0.1f))
+        //if (animtime * animspeed >= (acnt - 0.1f))
+        //    jumpanim = false;
         auto  texRect = m_textureAtlas.AnimationRect(animtime * animspeed + 1, 6, acnt, false);
 
         Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width * wm + sign(width) * sw, height * hm + sh }, angle,
@@ -572,7 +579,7 @@ void Character::Draw(int layer)
 }
 
 #if DEBUG
-void Character::DebugDraw()
+void Character::DebugDraw() const
 {
     auto cds = this->contacts;
     for (std::vector<struct ContactData>::iterator it = cds.begin(); it != cds.end(); ++it)
