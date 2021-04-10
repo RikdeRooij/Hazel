@@ -23,9 +23,9 @@ Enemy::Enemy(b2Body* bd, TextureAtlas textureRef, float w, float h, float scale)
 {
     PM_SCALE = 0.6f;
     PM_SCALEY = 1.6f;
-    isCharacter = true;
     //m_color = { 1.f, 0.3f, 0.3f, 1.f };
     dontDestroy = false;
+
 
     //b2CircleShape shape2;
     //shape2.m_radius = (size*0.5f * UNRATIO);
@@ -103,15 +103,20 @@ Character::Input Enemy::UpdateInput()
 #define RAY_DX 0.8f
 #define RAY_DY 0.5f
 
-void ApplyImpulse(RaysCastCallback &callback, Jelly::GameObject * hitgo, int xsign)
+void ApplyImpulse(b2Vec2 forcePos, Jelly::GameObject * hitgo, int xsign)
 {
     const float forcex = 7.f;
     const float forcey = 5.f;
-    auto forcePos = callback.m_point;
     hitgo->GetBody()->SetLinearVelocity({ 0,0 });
     hitgo->GetBody()->ApplyLinearImpulse({ xsign * forcex, forcey }, forcePos, true);
-    JellyGame::ShakeScreen();
-    AudioManager::PlaySoundType(Sounds::Hit);
+}
+
+void ApplyImpulse(Jelly::GameObject * hitgo, float xsign)
+{
+    const float forcex = 7.f;
+    const float forcey = 5.f;
+    hitgo->GetBody()->SetLinearVelocity({ 0,0 });
+    hitgo->GetBody()->ApplyLinearImpulseToCenter({ xsign * forcex, forcey }, true);
 }
 
 void Enemy::UpdateCollisions(b2Vec2& vel)
@@ -139,7 +144,10 @@ void Enemy::UpdateCollisions(b2Vec2& vel)
             {
                 ai_player_left = true;
                 if (callback.m_fraction < 0.5f)
-                    ApplyImpulse(callback, hitgo, -1);
+                {
+                    ApplyImpulse(callback.m_point, hitgo, -1);
+                    static_cast<Player*>(hitgo)->OnHit(this);
+                }
             }
         }
     }
@@ -158,7 +166,10 @@ void Enemy::UpdateCollisions(b2Vec2& vel)
             {
                 ai_player_right = true;
                 if (callback.m_fraction < 0.5f)
-                    ApplyImpulse(callback, hitgo, 1);
+                {
+                    ApplyImpulse(callback.m_point, hitgo, 1);
+                    static_cast<Player*>(hitgo)->OnHit(this);
+                }
             }
         }
     }
@@ -168,18 +179,23 @@ bool Jelly::Enemy::OnCollision(b2Vec2 normal, GameObject* other)
 {
     if (dead)
         return false;
-    if (other->m_type != Objects::Player)
-        return true;
-
-    //DBG_OUTPUT("CC %.2f", normal.y);
-    if (normal.y > 0.8f)
+    if (other && other->m_type == Objects::Player)
     {
-        JellyGame::ShakeScreen();
-        AudioManager::PlaySoundType(Sounds::EnemyDie);
-        Die();
+        //DBG_OUTPUT("CC %.2f", normal.y);
+        if (abs(normal.x) > 0.8f)
+        {
+            ApplyImpulse(other, sign(normal.x));
+            static_cast<Player*>(other)->OnHit(this);
+        }
     }
+    return true;
+}
 
-    return false;
+void Jelly::Enemy::OnHit(GameObject* by)
+{
+    JellyGame::ShakeScreen();
+    AudioManager::PlaySoundType(Sounds::EnemyDie);
+    Die();
 }
 
 void Jelly::Enemy::Jump(float x, float power)

@@ -78,7 +78,15 @@ namespace Hazel {
 			WindowResizeEvent event(width, height);
 			data.EventCallback(event);
 		});
+        
+        glfwSetWindowPosCallback(m_Window, [](GLFWwindow* window, int x, int y)
+        {
+            WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
+            WindowMovedEvent event(x, y);
+            data.EventCallback(event);
+        });
+        
 		glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window)
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);

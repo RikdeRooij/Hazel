@@ -244,6 +244,36 @@ namespace Hazel {
         s_Data.Stats.QuadCount++;
     }
 
+    void Renderer2D::DrawQuad(glm::vec4 QuadVertexPositions[4], const glm::mat4& transform, const glm::vec4& color)
+    {
+        HZ_PROFILE_FUNCTION();
+
+        
+        constexpr size_t quadVertexCount = 4;
+        const float textureIndex = 0.0f; // White Texture
+        constexpr glm::vec2 textureCoords[] = { { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
+        const glm::vec2 tilingFactor = { 1.0f, 1.0f };
+        const glm::vec2 tilingOffset = { 0.0f, 0.0f };
+
+        if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices)
+            NextBatch();
+
+        for (size_t i = 0; i < quadVertexCount; i++)
+        {
+            s_Data.QuadVertexBufferPtr->Position = transform * QuadVertexPositions[i];
+            s_Data.QuadVertexBufferPtr->Color = color;
+            s_Data.QuadVertexBufferPtr->TexCoord = textureCoords[i];
+            s_Data.QuadVertexBufferPtr->TexIndex = textureIndex;
+            s_Data.QuadVertexBufferPtr->TilingFactor = tilingFactor;
+            s_Data.QuadVertexBufferPtr->TilingOffset = tilingOffset;
+            s_Data.QuadVertexBufferPtr++;
+        }
+
+        s_Data.QuadIndexCount += 6;
+
+        s_Data.Stats.QuadCount++;
+    }
+
     void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture,
                               const glm::vec2& tilingFactor, const glm::vec4& tintColor)
     {

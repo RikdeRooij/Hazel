@@ -44,7 +44,6 @@ Character::Character(b2Body* bd, TextureAtlas textureRef, float w, float h, floa
     this->m_texture = textureRef.GetTextureRef();
 
     dontDestroy = false;
-    isCharacter = true;
 
     b2BodyUserData data;
     data.pointer = reinterpret_cast<uintptr_t>(this);
@@ -100,13 +99,10 @@ Character::~Character()
 
 void Character::Update(float dt)
 {
+    GameObject::Update(dt);
+
     time += dt * 1000;
     animtime += dt;
-
-
-    //b2Vec2 pos = getBody()->GetPosition();
-    prev_vel = vel;
-    vel = GetBody()->GetLinearVelocity();
 
     bool was_grounded = grounded;
     bool was_wallLeft = wallLeft;
@@ -160,7 +156,17 @@ void Character::Update(float dt)
         }
     }
 
-    GameObject::Update(dt);
+    if (input.fire)
+    {
+        if ((time - lastFireTime) > 300)
+        {
+            lastFireTime = time;
+            FixtureData fixtureDef = FixtureData::Category(FixtureData::PROJECTILE, (1 << Category::Projectile));
+            fixtureDef.filter.maskBits = ~((1 << Category::Projectile) | (1 << Category::Player) | (1 << Category::Platform));
+            auto fp = ObjectManager::CreateProjectile(posx - width * 0.25f, posy, 20, 10, { 1,0,0,1 }, dynamicBody, &fixtureDef);
+            fp->Start(this, 12 * -width, 0.5f);
+        }
+    }
 }
 
 Character::Input Character::UpdateInput()
@@ -250,9 +256,10 @@ void Character::UpdateCollisions(b2Vec2& vel)
         bool isRight = normal.x >= GROUND_NORMAL;
         bool isUp = (normal.y > 0 && abs(normal.x) < GROUND_NORMAL);
 
+        auto ctrDirVecLen = glm::length(ctrDirVec);
         bool isInside = manifold->pointCount > 0 &&
-            (glm::length(ctrDirVec) < 0.17f * height ||
-            (abs(ctrDirVec.x) < 0.34f * height && abs(ctrDirVec.y) < 0.32f * height));
+            (ctrDirVecLen < 0.17f * height ||
+            (abs(ctrDirVec.x) < 0.3f * height && abs(ctrDirVec.y) < 0.25f * height));
 
         if (isInside)
             inside = true;

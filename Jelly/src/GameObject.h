@@ -12,6 +12,7 @@ namespace Jelly
 {
     namespace Objects
     {
+        // in render order
         enum Type : int8
         {
             Unknown = 0,
@@ -25,10 +26,12 @@ namespace Jelly
             Ground,
             Platform,
 
-            Spike,
             SawBlade,
 
+            Projectile,
             Wall,
+
+            Spike,
 
             Lava,
 
@@ -37,11 +40,16 @@ namespace Jelly
 
         static const char * EnumStrings[] = {
             STRY(Unknown), STRY(Background),
-            STRY(Player), STRY(Object),
+            STRY(Player),
             STRY(Enemy),
+            STRY(Object),
             STRY(Ground), STRY(Platform),
-            STRY(Spike), STRY(SawBlade),
-            STRY(Wall), STRY(Lava), STRY(MAX_COUNT) };
+            STRY(SawBlade),
+            STRY(Projectile),
+            STRY(Wall),
+            STRY(Spike), 
+            STRY(Lava), 
+            STRY(MAX_COUNT) };
     }
 
     namespace Category
@@ -54,14 +62,16 @@ namespace Jelly
             Enemy,
 
             World,
+            Platform,
             Interactive,
+            Projectile,
 
             MAX_COUNT = 8
         };
 
         static const char * EnumStrings[] = {
             STRY(Unknown), STRY(Player), STRY(Enemy),
-            STRY(World), STRY(Interactive), STRY(MAX_COUNT) };
+            STRY(World), STRY(Platform), STRY(Interactive), STRY(Projectile), STRY(MAX_COUNT) };
     }
 
     class GameObject
@@ -92,7 +102,7 @@ namespace Jelly
         void GameObject::SetTilingOffset(const glm::vec2& offset) { this->m_texture_offset = offset; }
         glm::vec2 GameObject::GetTilingFactor() const { return this->m_texture_tiling; }
         glm::vec2 GameObject::GetTilingOffset() const { return this->m_texture_offset; }
-
+        
     protected:
         // setters
         void SetBody(b2Body* bd)
@@ -113,11 +123,19 @@ namespace Jelly
 
         virtual void Update(float dt);
 
+        virtual void LateUpdate(float dt);
+
         virtual void Draw(int layer) const;
+
+        virtual bool OnBeginContact(GameObject* other, glm::vec2 normal) { return true; }
+        virtual void OnEndContact(GameObject* other) {}
+        virtual void Delete();
 
 #if DEBUG
         virtual void DebugDraw() const {}
 #endif
+
+        bool IsCharacter() const { return m_type == Objects::Player || m_type == Objects::Enemy; }
 
         Objects::Type m_type = Objects::Unknown;
 
@@ -125,7 +143,15 @@ namespace Jelly
         bool dontDraw;;
 
         bool debugMode = false;
-        bool isCharacter = false;
+
+        b2Vec2 vel = b2Vec2(0.f, 0.f);
+        b2Vec2 prev_vel = b2Vec2(0.f, 0.f);
+        float posx;
+        float posy;
+        float angle;
+        float prev_posx;
+        float prev_posy;
+        float prev_angle;
 
     protected:
         static unsigned long instanceCount;
@@ -133,9 +159,6 @@ namespace Jelly
 
         // Member variables
         b2Body* m_body;
-        float posx;
-        float posy;
-        float angle;
         float width;
         float height;
         glm::vec2 m_origin;
@@ -146,7 +169,13 @@ namespace Jelly
         glm::vec2 m_texture_tiling = { 1.0f, 1.0f };
         int m_draw_layer = 0;
 
+        friend class PhysicsManager;
+
     public:
         bool destroyed = false;
+        bool destroy = false;
+
+    private:
+        friend class ObjectManager;
     };
 }

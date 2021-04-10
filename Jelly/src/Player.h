@@ -19,6 +19,10 @@ namespace Jelly
         Input UpdateInput() override;
 
         virtual void Die() override;
+        virtual void OnHit(GameObject* by) override;
+
+
+        virtual bool OnCollision(b2Vec2 normal, GameObject* other) override;
 
     };
 }

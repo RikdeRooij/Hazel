@@ -37,13 +37,8 @@ typedef unsigned long ulong;
 // Smallest possible single value greater than zero.
 #define EPSILON 1.401298E-45f
 
-
-// PIXELS_PER_METER  (1 meter (box2d) is more or less 64 pixels (sfml))
 #define RATIO 0.5f
-#define PIXELS_PER_METER RATIO
-// METERS_PER_PIXEL  (64 pixels (sfml) are more or less 1 meter (box2d))
 #define UNRATIO (1.0F/RATIO)
-#define METERS_PER_PIXEL UNRATIO
 
 ///////////////////////////////////////////////////////////////////
 

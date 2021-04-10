@@ -13,9 +13,9 @@ GameObject::GameObject()
     dontDestroy = false;
     dontDraw = false;
     m_body = nullptr;
-    posx = 0;
-    posy = 0;
-    angle = 0;
+    prev_posx = posx = 0;
+    prev_posy = posy = 0;
+    prev_angle = angle = 0;
     width = 0;
     height = 0;
 }
@@ -29,9 +29,9 @@ GameObject::GameObject(b2Body* bd, float w, float h, glm::vec4 color) : GameObje
     data.pointer = reinterpret_cast<uintptr_t>(this);
     m_body->SetUserData(data);
 
-    posx = m_body->GetPosition().x * RATIO;
-    posy = m_body->GetPosition().y * RATIO;
-    angle = toDegrees(m_body->GetAngle());
+    prev_posx = posx = m_body->GetPosition().x * RATIO;
+    prev_posy = posy = m_body->GetPosition().y * RATIO;
+    prev_angle = angle = toDegrees(m_body->GetAngle());
 
     width = w;
     height = h;
@@ -43,9 +43,9 @@ GameObject::GameObject(b2Body* bd, float w, float h, glm::vec4 color) : GameObje
 GameObject::GameObject(TextureRef tex, glm::vec2 pos, glm::vec2 size, glm::vec2 origin) : GameObject()
 {
     m_body = nullptr;
-    posx = pos.x;
-    posy = pos.y;
-    angle = 0;
+    prev_posx = posx = pos.x;
+    prev_posy = posy = pos.y;
+    prev_angle = angle = 0;
     width = size.x;
     height = size.y;
     this->m_texture = tex;
@@ -60,9 +60,9 @@ GameObject::GameObject(b2Body* bd, TextureRef tex, glm::vec2 size, glm::vec2 ori
     data.pointer = reinterpret_cast<uintptr_t>(this);
     m_body->SetUserData(data);
 
-    posx = m_body->GetPosition().x * RATIO;
-    posy = m_body->GetPosition().y * RATIO;
-    angle = toDegrees(m_body->GetAngle());
+    prev_posx = posx = m_body->GetPosition().x * RATIO;
+    prev_posy = posy = m_body->GetPosition().y * RATIO;
+    prev_angle = angle = toDegrees(m_body->GetAngle());
 
     width = size.x;
     height = size.y;
@@ -114,11 +114,32 @@ glm::vec2 GameObject::GetPosition(const glm::vec2 origin) const
 
 void GameObject::Update(float dt)
 {
-    if (m_body && (m_body->GetType() == b2_dynamicBody || m_body->GetType() == b2_kinematicBody))
+    if (m_body)
     {
-        posx = m_body->GetPosition().x * RATIO;
-        posy = m_body->GetPosition().y * RATIO;
-        angle = toDegrees(m_body->GetAngle());
+        if ((m_body->GetType() == b2_dynamicBody || m_body->GetType() == b2_kinematicBody))
+        {
+            prev_posx = posx;
+            prev_posy = posy;
+            prev_angle = angle;
+
+            posx = m_body->GetPosition().x * RATIO;
+            posy = m_body->GetPosition().y * RATIO;
+            angle = toDegrees(m_body->GetAngle());
+
+            //b2Vec2 pos = getBody()->GetPosition();
+            prev_vel = vel;
+            vel = GetBody()->GetLinearVelocity();
+        }
+    }
+
+}
+
+void GameObject::LateUpdate(float dt)
+{
+    if (!destroyed && destroy)
+    {
+        ObjectManager::Remove(this);
+        return;
     }
 }
 
@@ -146,4 +167,16 @@ void GameObject::Draw(int layer) const
         Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width, height }, angle, m_color);
 
     //Hazel::Renderer2D::DrawRotatedQuad({ posx, posy, z +0.001f }, { 0.2f, 0.2f }, angle, { 1,1,1,1 });
+}
+
+void Jelly::GameObject::Delete()
+{
+    if (destroy)
+        return;
+    if (!destroyed && m_body && m_body->GetWorld()->IsLocked())
+    {
+        destroy = true;
+        return;
+    }
+    ObjectManager::Remove(this);
 }

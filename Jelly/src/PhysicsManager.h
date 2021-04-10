@@ -70,7 +70,7 @@ namespace Jelly
 
         unsigned int RemoveBody(b2Body* body);
 
-        void Update(float time) const;
+        void Update(float dt);
         int RemovePhysicBodies(int leftLimit, int rightLimit, int upLimit, int downLimit);
 
         // Physics calls
@@ -86,6 +86,8 @@ namespace Jelly
     private:
         static b2World* physicsWorld;
         std::list<b2Body*> physicsObjectList;
+
+        float fixedTimestepAccumulator = 0;
 
     };
 
@@ -136,13 +138,13 @@ namespace Jelly
         FixtureData(float density, float friction = 0.2f, float restitution = 0.0f, char* userData = nullptr)
         {
             this->density = density; this->friction = friction; this->restitution = restitution;
-            this->userData = userData; 
+            this->userData = userData;
             isSensor = false;
         }
         // Constructor3: sensor
         FixtureData(bool sensor, b2Filter filter = {}, char* userData = nullptr)
         {
-            isSensor = sensor; this->filter = filter; 
+            isSensor = sensor; this->filter = filter;
             this->userData = userData;
             this->density = 0.0f; this->friction = 0.2f; this->restitution = 0.0f;
         }
@@ -173,6 +175,7 @@ namespace Jelly
         static const FixtureData SENSOR;
 
         static const FixtureData TEST;
+        static const FixtureData PROJECTILE;
         static const FixtureData LEVEL;
 
     } FixtureData;

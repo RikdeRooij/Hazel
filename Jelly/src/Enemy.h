@@ -19,6 +19,7 @@ namespace Jelly
         virtual bool OnCollision(b2Vec2 normal, GameObject* other) override;
 
         virtual void Die() override;
+        virtual void OnHit(GameObject* by) override;
 
         virtual void Jump(float x, float power) override;
 

@@ -59,6 +59,7 @@ std::list<GameObject*> ObjectManager::objectList;
 // Constructor
 ObjectManager::ObjectManager()
 {
+    instance = this;
     physicsMgr = new PhysicsManager();
     if (objectList.empty())
         objectList = std::list<GameObject*>();
@@ -109,9 +110,12 @@ ObjectManager::~ObjectManager()
         delete go;
     }
     objectList.clear();
+    textures.clear();
 
     delete physicsMgr;
     physicsMgr = nullptr;
+
+    instance = nullptr;
 }
 
 PhysicsManager* ObjectManager::GetPhysicsMgr()
@@ -130,7 +134,7 @@ Player* ObjectManager::CreatePlayer(float x, float y, float size)
     TextureAtlas textureRef = TextureAtlas("assets/jelly_anim.xml");
 
     Player* player = new Player(bodyBox, textureRef, size * 1.4f * LVL_SCALE, size * 1.0f * LVL_SCALE, LVL_SCALE);
-    player->Init(Objects::Player, 4);
+    player->Init(Objects::Player, 5);
 
     DBG_OUTPUT("Added: %s %s", DBG_GM_GO(player), DBG_PM_BODY(player->GetBody(), "Player").c_str());
     //objectList.push_back(player);
@@ -141,6 +145,7 @@ Enemy* ObjectManager::CreateEnemy(float x, float y, float size)
 {
     auto fixtureDef = FixtureData(1.0f, 0.5f, 0.45f, "Enemy");
     fixtureDef.filter.categoryBits = (1 << Category::Enemy);
+
     //fixtureDef.filter.maskBits = ~(1 << Category::Player);
     auto bodyBox = physicsMgr->AddBox(x * LVL_SCALE, y * LVL_SCALE, size * LVL_SCALE, size * 0.9f * LVL_SCALE, 0,
                                       BodyType::dynamicBody, &fixtureDef, 0.5f, 0.55f);
@@ -191,7 +196,7 @@ GameObject* ObjectManager::CreateLava(float x, float y, float w, float h)
     GameObject* lava = new GameObject(physBody, texture, { w * LVL_SCALE, h * LVL_SCALE }, { ctrx, ctry - ctry_off });
     lava->SetTilingFactor({ w / h, 1.0f });
     lava->dontDestroy = true;
-    lava->Init(Objects::Lava, 4);
+    lava->Init(Objects::Lava, 5);
 
     DBG_OUTPUT("Added: %s %s", DBG_GM_GO(lava), DBG_PM_BODY(lava->GetBody(), "Lava").c_str());
     //objectList.push_back(lava);
@@ -206,6 +211,23 @@ GameObject* ObjectManager::CreateBox(float x, float y, float w, float h, glm::ve
 
     GameObject* object = new GameObject(physBody, w * LVL_SCALE, h * LVL_SCALE, color);
     object->Init(Objects::Object, 2);
+
+    b2BodyUserData data;
+    data.pointer = reinterpret_cast<uintptr_t>(object);
+    physBody->SetUserData(data);
+
+    objectList.push_back(object);
+    return object;
+}
+
+Projectile * Jelly::ObjectManager::CreateProjectile(float x, float y, float w, float h, glm::vec4 color, const BodyType bodyType, const FixtureData * fixtureData)
+{
+    // We create a new object
+    b2Body* physBody = physicsMgr->AddBox(x, y, w * LVL_SCALE, h * LVL_SCALE, 0, bodyType, fixtureData, 0.5f, 0.5f);
+
+    static TextureRef ptex = Hazel::Texture2D::Create("assets/particle.png");
+    Projectile* object = new Projectile(physBody, ptex, w * LVL_SCALE, h * LVL_SCALE, color);
+    object->Init(Objects::Projectile, 3);
 
     b2BodyUserData data;
     data.pointer = reinterpret_cast<uintptr_t>(object);
@@ -329,7 +351,8 @@ GameObject* ObjectManager::AddPlatform(float x, float y, glm::vec2 org, float an
     float h = (texSize.y - LVL_OVERLAP);
     y += h;
 
-    FixtureData fixtureDef = LVL_FIXTURE(1 << Category::World);
+    auto cat = type == Textures::Lvl_Ground ? Category::World : Category::Platform;
+    FixtureData fixtureDef = LVL_FIXTURE(1 << cat);
     GameObject* object = CreateBoxPhysicsObject({ (x), (y - h) }, texSize, { org.x,  org.y }, angle,
                                                 tex, staticBody, &fixtureDef);
     object->Init(Objects::Platform, 2);
@@ -389,7 +412,7 @@ GameObject* ObjectManager::AddSpike(float x, float y, float angle)
         (float)spikeSize.x * LVL_SCALE, (float)spikeSize.y * LVL_SCALE, angle, staticBody, &fixtureDef2);
 
     GameObject* object = new GameObject(physBody, spikeTex, { spikeSize.x * LVL_SCALE, spikeSize.y * LVL_SCALE }, { .5f, .5f });
-    object->Init(Objects::Spike, 3);
+    object->Init(Objects::Spike, 5);
 
     DBG_OUTPUT("Added: %s %s", DBG_GM_GO(object), DBG_PM_BODY(physBody, "LVL_SPIKE").c_str());
     objectList.push_back(object);
@@ -638,7 +661,8 @@ int ObjectManager::Remove(GameObject* go)
         objectList.remove(go);
         bool removed = c != objectList.size();
 
-        int dc = physicsMgr->RemoveBody(go->GetBody());
+        int dc = physicsMgr->RemoveBody(go->m_body);
+        go->m_body = (nullptr);
         if (!go->destroyed)
             delete go;
 
@@ -655,9 +679,20 @@ void ObjectManager::UpdateStep(const float dt) const
 
 void ObjectManager::UpdateObjects(const float dt) const
 {
+    static GameObject* goBuffer[8192];
+    int i = 0;
     for (std::list<GameObject*>::iterator iter = objectList.begin(); iter != objectList.end(); ++iter)
+    {
+        goBuffer[i++] = (*iter);
         (*iter)->Update(dt);
+    }
+
+    for (int j = i- 1; j >= 0 ; j--)
+    {
+        goBuffer[j]->LateUpdate(dt);
+    }
 }
+
 
 void ObjectManager::DrawObjects(const int layer) const
 {

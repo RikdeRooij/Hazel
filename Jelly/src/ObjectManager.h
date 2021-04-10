@@ -9,6 +9,7 @@
 #include <map>
 #include "Player.h"
 #include "Enemy.h"
+#include "Projectile.h"
 
 #define LVL_SCALE 0.01f
 
@@ -50,9 +51,11 @@ namespace Jelly
     class TextureRef;
     //typedef TextureType Texture2D;
 
-    class ObjectManager
+    class ObjectManager : instance_holder<ObjectManager*>
     {
     public:
+        static ObjectManager* GetInstance() { return instance; }
+
         ObjectManager();
         ~ObjectManager();
 
@@ -68,6 +71,8 @@ namespace Jelly
 
         static GameObject* CreateBox(float x, float y, float w, float h, glm::vec4 color,
                                      const BodyType bodyType, const FixtureData* fixtureData = &FixtureData::DEFAULT);
+        static Projectile* CreateProjectile(float x, float y, float w, float h, glm::vec4 color,
+                                     const BodyType bodyType, const FixtureData* fixtureData = &FixtureData::PROJECTILE);
 
         GameObject* AddBackground(float &y);
         GameObject* AddLeftWall(float offX, float &y);

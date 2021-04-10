@@ -73,7 +73,6 @@ namespace Jelly
         ulong playerScoreBestMaxY = 0;
         ulong playerScoreBestMaxY_prev = 0;
 
-        bool startFrame = true;
         bool startedMove = false;
         bool newBest = false;
         clock_t clockStart;
@@ -81,6 +80,8 @@ namespace Jelly
         unsigned int avg_counter = 0;
         float avg_fps = 0;
         float screenShake = 0;
+
+        float blackFadeAlpha = 1.0f;
 
         ParticleProps lavaParticle;
         ParticleSystem m_ParticleSystem;

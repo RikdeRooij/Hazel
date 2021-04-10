@@ -1,6 +1,7 @@
 #include "Player.h"
 #include "Hazel/Core/Input.h"
 #include "AudioManager.h"
+#include "JellyGame.h"
 
 using namespace Jelly;
 
@@ -10,7 +11,6 @@ Player::Player(b2Body* bd, TextureAtlas textureRef, float w, float h, float scal
     : Character(bd, textureRef, w, h, scale)
 {
     PM_SCALE = 1.0f;
-    isCharacter = true;
     dontDestroy = true;
     Player::instance = this;
 }
@@ -61,6 +61,7 @@ Character::Input Player::UpdateInput()
 
         Input ninput = Input(false, false, false, false);
         ninput.update_move = false;
+        ninput.fire = IsKeyPressed(Hazel::Key::Space, Hazel::Key::F);
         return ninput;
     }
 
@@ -69,6 +70,7 @@ Character::Input Player::UpdateInput()
                         IsKeyPressed(Hazel::Key::Up, Hazel::Key::W),
                         IsKeyPressed(Hazel::Key::Down, Hazel::Key::S));
     input.update_move = true;
+    input.fire = IsKeyPressed(Hazel::Key::Space, Hazel::Key::F);
     return input;
 }
 
@@ -79,4 +81,27 @@ void Jelly::Player::Die()
     Character::Die();
     //AudioManager::PlayFile("assets/Sounds/laser6.wav");
     AudioManager::PlaySoundType(Sounds::PlayerDie);
+}
+
+void Jelly::Player::OnHit(GameObject* by)
+{
+    JellyGame::ShakeScreen();
+    AudioManager::PlaySoundType(Sounds::Hit);
+}
+
+bool Jelly::Player::OnCollision(b2Vec2 normal, GameObject* other)
+{
+    if (dead)
+        return false;
+    if (other && other->m_type == Objects::Enemy)
+    {
+        //DBG_OUTPUT("CC %.2f", normal.y);
+        if (normal.y < -0.8f)
+        {
+            static_cast<Character*>(other)->OnHit(this);
+            grounded = true;
+            inside = false;
+        }
+    }
+    return true;
 }

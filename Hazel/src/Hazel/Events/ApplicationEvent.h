@@ -26,6 +26,28 @@ namespace Hazel {
 		unsigned int m_Width, m_Height;
 	};
 
+    class WindowMovedEvent : public Event
+    {
+    public:
+        WindowMovedEvent(unsigned int x, unsigned int y)
+            : m_X(x), m_Y(y) {}
+
+        unsigned int GetX() const { return m_X; }
+        unsigned int GetY() const { return m_Y; }
+
+        std::string ToString() const override
+        {
+            std::stringstream ss;
+            ss << "WindowMoveEvent: " << m_X << ", " << m_Y;
+            return ss.str();
+        }
+
+        EVENT_CLASS_TYPE(WindowMoved)
+        EVENT_CLASS_CATEGORY(EventCategoryApplication)
+    private:
+        unsigned int m_X, m_Y;
+    };
+
 	class WindowCloseEvent : public Event
 	{
 	public:

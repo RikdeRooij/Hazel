@@ -25,7 +25,9 @@ namespace Jelly
                 this->update_move = true;
             }
             bool left; bool right; bool down; bool up;
-            bool update_move;
+            bool fire = false;
+            bool alt = false;
+            bool update_move = true;
         } Input;
 
         virtual void Draw(int layer) const override;
@@ -39,7 +41,7 @@ namespace Jelly
         virtual void UpdateCollisions(b2Vec2& vel);
         virtual void UpdateMove(Input input, b2Vec2& vel);
 
-        virtual bool OnCollision(b2Vec2 normal, GameObject* other) { return true; }
+        virtual bool OnCollision(b2Vec2 normal, GameObject* other) { return !dead; }
 
         virtual void MoveX(float power);
         virtual void Jump(float x, float power);
@@ -49,6 +51,7 @@ namespace Jelly
         virtual void Explode();
 
         virtual void Die();
+        virtual void OnHit(GameObject* by) {}
 
         bool dead = false;
 
@@ -86,14 +89,13 @@ namespace Jelly
 
     protected:
 
-        b2Vec2 vel = b2Vec2(0.f, 0.f);
-        b2Vec2 prev_vel = b2Vec2(0.f, 0.f);
         float animtime = 0;
         float time = 0;
         float lastJumpTime = 0;
         float lastLandTime = 0;
         float lastInsideTime = 0;
         float lastInsideY = 0;
+        float lastFireTime = 0;
         bool jumpanim = false;
         float anim_squish = 0;
 

@@ -37,6 +37,7 @@ namespace Hazel {
 		void Run();
 		bool OnWindowClose(WindowCloseEvent& e);
 		bool OnWindowResize(WindowResizeEvent& e);
+	    bool OnWindowMoved(WindowMovedEvent& e);
 	private:
 		Scope<Window> m_Window;
 		ImGuiLayer* m_ImGuiLayer;
@@ -44,6 +45,7 @@ namespace Hazel {
 		bool m_Minimized = false;
 		LayerStack m_LayerStack;
 		float m_LastFrameTime = 0.0f;
+        bool m_StartFrame = true;
 	private:
 		static Application* s_Instance;
 		friend int ::main(int argc, char** argv);

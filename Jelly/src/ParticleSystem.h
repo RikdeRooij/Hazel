@@ -36,6 +36,7 @@ namespace Jelly
     public:
         void OnUpdate(float ts);
         void OnRender();
+        void Clear();
 
         void Emit(const ParticleProps& particleProps);
 

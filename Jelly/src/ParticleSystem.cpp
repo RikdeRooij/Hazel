@@ -60,7 +60,7 @@ void ParticleSystem::OnRender()
 
         float size = glm::lerp(particle.SizeEnd, particle.SizeBegin, life);
 
-        float z = 1.0f - (i--) * 0.001f;
+        float z = 0.99f - (--i) * 0.001f;
         
         //glm::mat4 transform = glm::translate(glm::mat4(1.0f), { particle.Position.x, particle.Position.y, 0.0f })
         //    * glm::rotate(glm::mat4(1.0f), particle.Rotation, { 0.0f, 0.0f, 1.0f })
@@ -81,6 +81,16 @@ void ParticleSystem::OnRender()
         {
             Hazel::Renderer2D::DrawRotatedQuad({ particle.Position.x, particle.Position.y, z }, { size,size }, particle.Rotation, color);
         }
+    }
+}
+
+void ParticleSystem::Clear()
+{
+    for (auto& particle : m_ParticlePool)
+    {
+        if (!particle.Active)
+            continue;
+        particle.Active = false;
     }
 }
 

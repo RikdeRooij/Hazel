@@ -3,16 +3,23 @@
 #include "Hazel/Renderer/Renderer2D.h"
 #include <stdlib.h>
 #include "Globals.h"
+#include <glm/gtc/matrix_transform.hpp>
 
 #define PZ 0.5f
-#define LW 0.02f
 #define PNTSIZE 0.05f
 
 #define ALPHA 0.5f
 #define CLR(color) { color.r, color.g, color.b, color.a }
 #define CLRA(color) { color.r, color.g, color.b, color.a * ALPHA }
 
-void DebugDraw::DrawRay(const glm::vec2 & pos, const glm::vec2 & dir, const glm::vec4 & color)
+glm::vec4 DebugDraw::RayQuadVertexPositions[4] = {
+    { -0.5f, -0.5f, 0.0f, 1.0f },
+    { 0.5f, -0.1f, 0.0f, 1.0f },
+    { 0.5f,  0.1f, 0.0f, 1.0f },
+    { -0.5f,  0.5f, 0.0f, 1.0f }
+};
+
+void DebugDraw::DrawRay(const glm::vec2 & pos, const glm::vec2 & dir, const glm::vec4 & color, float lineWidth)
 {
     auto len = std::max(0.01f, glm::length(dir));
 
@@ -20,13 +27,19 @@ void DebugDraw::DrawRay(const glm::vec2 & pos, const glm::vec2 & dir, const glm:
     auto angleInDegrees = (angleInRadians / PI) * 180.0f;
 
     auto v = pos + (dir * 0.5f);
-    glm::vec2 size = { len, LW };
+    glm::vec2 size = { len, lineWidth };
 
-    Hazel::Renderer2D::DrawRotatedQuad({ v.x, v.y, PZ + 0.42f }, { size.x, size.y }, angleInDegrees, color);
-    Hazel::Renderer2D::DrawRotatedQuad({ pos.x, pos.y, PZ + 0.43f }, { LW * 2, LW * 2 }, 0, color);
+    //Hazel::Renderer2D::DrawRotatedQuad({ v.x, v.y, PZ + 0.42f }, { size.x, size.y }, angleInDegrees, color);
+    //Hazel::Renderer2D::DrawRotatedQuad({ pos.x, pos.y, PZ + 0.43f }, { lineWidth * 1.3f, lineWidth * 1.3f }, 0, color);
+
+    glm::vec3 position = { v.x, v.y, PZ + 0.42f };
+    glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
+        * glm::rotate(glm::mat4(1.0f), glm::radians(angleInDegrees), { 0.0f, 0.0f, 1.0f })
+        * glm::scale(glm::mat4(1.0f), { size.x, size.y, 1.0f });
+    Hazel::Renderer2D::DrawQuad(RayQuadVertexPositions, transform, color);
 }
 
-void DebugDraw::DrawLine(const glm::vec2 & a, const glm::vec2 & b, const glm::vec4 & color)
+void DebugDraw::DrawLine(const glm::vec2 & a, const glm::vec2 & b, const glm::vec4 & color, float lineWidth)
 {
     auto dir = (b - a);
     auto len = std::max(0.01f, glm::distance(a, b));
@@ -35,21 +48,21 @@ void DebugDraw::DrawLine(const glm::vec2 & a, const glm::vec2 & b, const glm::ve
     float angleInDegrees = (angleInRadians / PI) * 180.0f;
 
     auto v = (a + b) * 0.5f;
-    glm::vec2 size = { len, LW };
+    glm::vec2 size = { len, lineWidth };
 
     Hazel::Renderer2D::DrawRotatedQuad({ v.x, v.y, PZ + 0.22f }, { size.x, size.y }, angleInDegrees, color);
 }
 
-void DebugDraw::DrawLineRect(const glm::vec2 & a, const glm::vec2 & b, const glm::vec4 & color)
+void DebugDraw::DrawLineRect(const glm::vec2 & a, const glm::vec2 & b, const glm::vec4 & color, float lineWidth)
 {
     auto dir = (b - a);
     auto v = (a + b) * 0.5f;
     glm::vec2 size = { dir.x, dir.y };
 
-    Hazel::Renderer2D::DrawRotatedQuad({ v.x, v.y + size.y * .5f, PZ + 0.22f }, { size.x, LW }, 0, color);
-    Hazel::Renderer2D::DrawRotatedQuad({ v.x, v.y - size.y * .5f, PZ + 0.22f }, { size.x, LW }, 0, color);
-    Hazel::Renderer2D::DrawRotatedQuad({ v.x - size.x * .5f, v.y, PZ + 0.22f }, { LW, size.y }, 0, color);
-    Hazel::Renderer2D::DrawRotatedQuad({ v.x + size.x * .5f, v.y, PZ + 0.22f }, { LW, size.y }, 0, color);
+    Hazel::Renderer2D::DrawRotatedQuad({ v.x, v.y + size.y * .5f, PZ + 0.22f }, { size.x, lineWidth }, 0, color);
+    Hazel::Renderer2D::DrawRotatedQuad({ v.x, v.y - size.y * .5f, PZ + 0.22f }, { size.x, lineWidth }, 0, color);
+    Hazel::Renderer2D::DrawRotatedQuad({ v.x - size.x * .5f, v.y, PZ + 0.22f }, { lineWidth, size.y }, 0, color);
+    Hazel::Renderer2D::DrawRotatedQuad({ v.x + size.x * .5f, v.y, PZ + 0.22f }, { lineWidth, size.y }, 0, color);
 }
 
 // ################################################################

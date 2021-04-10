@@ -59,6 +59,11 @@ void JellyGame::OnDetach()
 
 void JellyGame::StartGame()
 {
+    blackFadeAlpha = 1.0f;
+
+    m_ParticleSystem.Clear();
+    m_CameraController.SetCameraPosition({ 0,0,0 });
+
     objectManager = new ObjectManager();
     //physicsMgr = new PhysicsManager();
     auto physicsMgr = objectManager->GetPhysicsMgr();
@@ -77,12 +82,12 @@ void JellyGame::StartGame()
 
     float startX =
 #if DEBUG
-        -150;
+        - 150;
 #else
         0;
 #endif
 #if DEBUG
-    //objectManager->CreateEnemy(-startX, 300 - (20 + 13), 40);
+    objectManager->CreateEnemy(-startX, 300 - (20 + 13), 40);
 #endif
     this->player = objectManager->CreatePlayer(startX, -13, 50);
 
@@ -95,7 +100,6 @@ void JellyGame::StartGame()
     newBest = playerScoreBestMaxY_prev <= 0;
 
     clockStart = clock();
-    startFrame = true;
     startedMove = false;
 }
 
@@ -111,7 +115,7 @@ void JellyGame::DestroyGame() const
 }
 
 
-#define DRAW_LAYER_COUNT 4
+#define DRAW_LAYER_COUNT 5
 
 #define LVL_DIST_ADD 2.0f
 #define LVL_DIST_DEL 4.0f
@@ -172,13 +176,6 @@ glm::vec2 UpdatePlayer(Player* player, float dt, Hazel::OrthographicCameraContro
 void JellyGame::OnUpdate(Hazel::Timestep ts)
 {
     HZ_PROFILE_FUNCTION();
-
-    if (startFrame)
-    {
-        startFrame = false;
-        ts = 0;
-    }
-
     auto deltaTime = ts.GetMilliseconds();
 
     //dt_smooth = (dt_smooth * 0.67f + deltaTime * 0.33f);
@@ -195,11 +192,30 @@ void JellyGame::OnUpdate(Hazel::Timestep ts)
     // Update
     m_CameraController.OnUpdate(ts);
 
+    static bool restarting = false;
     if (Hazel::Input::BeginKeyPress(Hazel::Key::R))
     {
-        DestroyGame();
-        StartGame();
-        return;
+        restarting = true;
+        //DestroyGame();
+        //StartGame();
+        //return;
+    }
+
+    const float fadeSpeed = 5.0f;
+    if (restarting)
+    {
+        blackFadeAlpha += ts.GetSeconds() * fadeSpeed;
+        if (blackFadeAlpha >= 1.0f)
+        {
+            blackFadeAlpha = 1.0f;
+            restarting = false;
+            DestroyGame();
+            StartGame();
+        }
+    }
+    else if (blackFadeAlpha > 0.0f)
+    {
+        blackFadeAlpha -= ts.GetSeconds() * fadeSpeed;
     }
 
     UpdateGame(ts);
@@ -222,9 +238,9 @@ void JellyGame::UpdateGame(Hazel::Timestep& ts)
     {
         screenShake -= ts.GetSeconds();
         camAngle = Interpolate::Linearf(m_CameraController.GetCameraRotation(),
-                                        (Random::Float() - 0.5f) * (screenShake+0.2f) * 25,
+            (Random::Float() - 0.5f) * (screenShake + 0.2f) * 25,
                                         0.1f);
-    }
+}
     m_CameraController.SetCameraRotation(camAngle);
     lava->GetBody()->SetTransform(lava->GetBody()->GetPosition(), ((float)sin(runSeconds * 0.67) * 1.5f * DEG2RAD));
 
@@ -363,14 +379,24 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
 
         m_ParticleSystem.OnRender();
 
-        if (playerScoreBestMaxY_prev > 0)
+        if (playerScoreBestMaxY_prev > 0 && blackFadeAlpha <= 0.0f)
         {
-            glm::vec4 bcolor = playerScoreMaxY >= playerScoreBestMaxY_prev ? glm::vec4( 0, 1, 0, 0.5f ) : glm::vec4( 1, 0, 0, 0.5f );
+            glm::vec4 bcolor = playerScoreMaxY >= playerScoreBestMaxY_prev ? glm::vec4(0, 1, 0, 0.5f) : glm::vec4(1, 0, 0, 0.5f);
             DebugDraw::DrawRay({ -10, playerScoreBestMaxY_prev * 0.5f - 0.5f }, { 20.0f, 0 }, bcolor);
         }
 
         Hazel::Renderer2D::EndScene();
 
+        if (blackFadeAlpha > 0.0f)
+        {
+            glm::vec3 cam_pos = m_CameraController.GetCameraPosition();
+            cam_pos.z = 0.999f;
+            float zoom = m_CameraController.GetZoomLevel();
+
+            Hazel::Renderer2D::BeginScene(m_CameraController.GetCamera());
+            Hazel::Renderer2D::DrawQuad(cam_pos, { m_ScreenWidth * zoom, m_ScreenHeight * zoom }, { 0.0f, 0.0f, 0.0f, blackFadeAlpha });
+            Hazel::Renderer2D::EndScene();
+        }
 
         //Hazel::Renderer2D::BeginScene(m_CameraController.GetCamera());
         //m_ParticleSystem.OnRender();
@@ -395,49 +421,53 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
                 (*iter)->DebugDraw();
             player->DebugDraw();
 
-            const float epsilon = 0.1f;
-            //auto plyr_pos = player->GetBody()->GetPosition();
-            //auto plyr_velo = player->GetBody()->GetLinearVelocity();
-            auto plyr_fixlist = player->GetBody()->GetFixtureList();
-            if (plyr_fixlist)
+            auto plyr_body = player->GetBody();
+            if (plyr_body && plyr_body->IsEnabled())
             {
-                auto plyr_aabb = plyr_fixlist->GetAABB(0);
-                auto plyr_mins = plyr_aabb.GetCenter() - plyr_aabb.GetExtents();
-                DebugDraw::DrawRay({ plyr_mins.x * RATIO, plyr_mins.y * RATIO }, { 0, -0.5f }, { 1,0,1,1 });
-
-                for (std::list<GameObject*>::iterator iter = objectList.begin(); iter != objectList.end(); ++iter)
+                const float epsilon = 0.1f;
+                //auto plyr_pos = plyr_body->GetPosition();
+                //auto plyr_velo = plyr_body->GetLinearVelocity();
+                auto plyr_fixlist = plyr_body->GetFixtureList();
+                if (plyr_fixlist)
                 {
-                    auto obj_body = (*iter)->GetBody();
-                    if (obj_body && obj_body->IsEnabled())
+                    auto plyr_aabb = plyr_fixlist->GetAABB(0);
+                    auto plyr_extents = plyr_aabb.GetExtents();
+                    auto plyr_mins = plyr_aabb.GetCenter() - plyr_extents;
+                    DebugDraw::DrawRay({ plyr_mins.x * RATIO, plyr_mins.y * RATIO }, { plyr_extents.x * RATIO * 2,  plyr_extents.y * RATIO * 2 }, { 1,0,1,1 });
+
+                    for (std::list<GameObject*>::iterator iter = objectList.begin(); iter != objectList.end(); ++iter)
                     {
-                        auto obj_fixlist = obj_body->GetFixtureList();
-                        if (obj_fixlist)
+                        auto obj_body = (*iter)->GetBody();
+                        if (obj_body && obj_body->IsEnabled())
                         {
-                            auto obj_aabb = obj_fixlist->GetAABB(0);
-                            auto obj_maxs = obj_aabb.GetCenter() + obj_aabb.GetExtents();
+                            auto obj_fixlist = obj_body->GetFixtureList();
+                            if (obj_fixlist)
+                            {
+                                auto obj_aabb = obj_fixlist->GetAABB(0);
+                                auto obj_maxs = obj_aabb.GetCenter() + obj_aabb.GetExtents();
 
-                            //auto below = (plyr_mins.y < obj_maxs.y - epsilon);
+                                //auto below = (plyr_mins.y < obj_maxs.y - epsilon);
 
-                            DebugDraw::DrawRay({ obj_maxs.x * RATIO, obj_maxs.y * RATIO }, { 0, 0.5f }, { 0,1,1,1 });
-                            DebugDraw::DrawRay({ obj_maxs.x * RATIO, (obj_maxs.y - epsilon) * RATIO }, { 0.5f, 0 }, { 0,1,1,1 });
+                                //DebugDraw::DrawRay({ obj_maxs.x * RATIO, obj_maxs.y * RATIO }, { 0, 0.5f }, { 0,1,1,1 });
+                                DebugDraw::DrawRay({ obj_maxs.x * RATIO, (obj_maxs.y - epsilon) * RATIO }, { 0.5f, 0 }, { 0,1,1,1 });
+                            }
                         }
                     }
                 }
             }
 
+            glm::vec2 lavaPos = lava->GetPosition({ 0.5f, 0.05f });
+            auto ppos = lavaPos;
+            auto psize = glm::vec2(PARTICLES_DX * .5f, PARTICLES_DY * .5f);
+            ppos.y = ppos.y - (psize.y + 0.08f);
 
-             glm::vec2 lavaPos = lava->GetPosition({ 0.5f, 0.05f });
-             auto ppos = lavaPos;
-             auto psize = glm::vec2(PARTICLES_DX * .5f, PARTICLES_DY * .5f);
-             ppos.y = ppos.y - (psize.y + 0.08f);
-             
-             //DebugDraw::DrawLine(ppos - psize, ppos + psize, { 1, 1, 0, 1 });
-             DebugDraw::DrawLineRect(ppos - psize, ppos + psize, { 1, 1, 0, 1 });
-             //DebugDraw::DrawLine(lavaPos, lavaPos + lava->GetSize() * .5f, { 1, 0, 1, 1 });
+            //DebugDraw::DrawLine(ppos - psize, ppos + psize, { 1, 1, 0, 1 });
+            DebugDraw::DrawLineRect(ppos - psize, ppos + psize, { 1, 1, 0, 1 });
+            //DebugDraw::DrawLine(lavaPos, lavaPos + lava->GetSize() * .5f, { 1, 0, 1, 1 });
 
 
-             DebugDraw::DrawLine(lava->GetPosition({ 0.0f, 0.0f }), lava->GetPosition({ 1.f, 1.f }), { 1, 0, 1, 1 });
-             DebugDraw::DrawLine(lava->GetPosition(), lava->GetPosition({ 0.0f, 0.0f }), { 0, 1, 0, 1 });
+            DebugDraw::DrawLine(lava->GetPosition({ 0.0f, 0.0f }), lava->GetPosition({ 1.f, 1.f }), { 1, 0, 1, 1 });
+            DebugDraw::DrawLine(lava->GetPosition(), lava->GetPosition({ 0.0f, 0.0f }), { 0, 1, 0, 1 });
 
             Hazel::Renderer2D::EndScene();
         }
@@ -456,8 +486,8 @@ ImGuiWindowFlags SetWindowPos(int corner = -1, float xDistance = 10.0f, float yD
     ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImVec2 work_area_pos = viewport->GetWorkPos();   // Instead of using viewport->Pos we use GetWorkPos() to avoid menu bars, if any!
     ImVec2 work_area_size = viewport->GetWorkSize();
-    ImVec2 window_pos = ImVec2((corner & 1) ? (work_area_pos.x + work_area_size.x - xDistance) : (work_area_pos.x + xDistance), 
-                               (corner & 2) ? (work_area_pos.y + work_area_size.y - yDistance) : (work_area_pos.y + yDistance));
+    ImVec2 window_pos = ImVec2((corner & 1) ? (work_area_pos.x + work_area_size.x - xDistance) : (work_area_pos.x + xDistance),
+        (corner & 2) ? (work_area_pos.y + work_area_size.y - yDistance) : (work_area_pos.y + yDistance));
     ImVec2 window_pos_pivot = ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
     ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize |
@@ -485,7 +515,7 @@ void JellyGame::OnImGuiRender()
         }
         ImGui::End();
     }
-    
+
     if (ImGui::Begin("Info", nullptr, SetWindowPos(0)))
     {
         ImGui::Text("  Best Highscore: %d", (playerScoreBestMaxY));
@@ -497,7 +527,7 @@ void JellyGame::OnImGuiRender()
         ImGui::Text("  Score: %d", (playerScoreY));
     }
     ImGui::End();
-    
+
     if (ImGui::Begin("System", nullptr, SetWindowPos(1)))
     {
         ImGui::Text("  FPS: %.0f", (avg_fps));

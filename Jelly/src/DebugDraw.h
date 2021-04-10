@@ -42,11 +42,11 @@ public:
     bool HasBeginDraw() const { return m_BeginDraw != nullptr; }
 
 
-    static void DrawRay(const glm::vec2 & pos, const glm::vec2 & dir, const glm::vec4 & color);
+    static void DrawRay(const glm::vec2 & pos, const glm::vec2 & dir, const glm::vec4 & color, float lineWidth = 0.025f);
 
-    static void DrawLine(const glm::vec2& a, const glm::vec2& b, const glm::vec4& color);
+    static void DrawLine(const glm::vec2& a, const glm::vec2& b, const glm::vec4& color, float lineWidth = 0.02f);
 
-    static void DrawLineRect(const glm::vec2 & a, const glm::vec2 & b, const glm::vec4 & color);
+    static void DrawLineRect(const glm::vec2 & a, const glm::vec2 & b, const glm::vec4 & color, float lineWidth = 0.02f);
 
 private:
 
@@ -57,4 +57,5 @@ private:
     std::function<void()> m_BeginDraw = nullptr;
     std::function<void()> m_EndDraw = nullptr;
 
+    static glm::vec4 RayQuadVertexPositions[4];
 };

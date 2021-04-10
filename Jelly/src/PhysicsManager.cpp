@@ -33,6 +33,7 @@ FIXTUREDEF(0.0001f, 0.9f, 0.00f, HELIUM);
 
 FIXTUREDEF(0.50f, 0.10f, 0.45f, TEST);
 
+FIXTUREDEF(5.00f, 0.30f, 0.10f, PROJECTILE);
 FIXTUREDEF(2.00f, 0.50f, 0.10f, LEVEL);
 
 const FixtureData FixtureData::SENSOR = FixtureData(true, {}, "SENSOR");
@@ -56,6 +57,7 @@ PhysicsManager::PhysicsManager()
     {
         physicsWorld = new b2World(b2Vec2(0.0f, P_GRAVITY));
         physicsWorld->SetAllowSleeping(true);
+        physicsWorld->SetAllowSleeping(false);
     }
 
     // set variables
@@ -200,7 +202,7 @@ b2Body* PhysicsManager::CreatePhysicsObject(float x, float y, float size)
     return innerCircleBody;
 }
 
-b2Body* PhysicsManager::AddBox(float x, float y, float w, float h, float angle, 
+b2Body* PhysicsManager::AddBox(float x, float y, float w, float h, float angle,
                                const BodyType bodyType, const FixtureData* fixtureData, float ctrx, float ctry)
 {
     b2BodyDef bodyDef;
@@ -242,14 +244,21 @@ b2Body* PhysicsManager::AddCircle(float x, float y, float radius, const BodyType
     return bodyBox;
 }
 
-void PhysicsManager::Update(float time) const
-{
-    // Update the world
-    //this->physicsWorld->Step(P_TIMESTEP, velocityIterations, positionIterations);
-    this->physicsWorld->Step(time, velocityIterations, positionIterations);
-    this->physicsWorld->ClearForces();
+const float FIXED_TIMESTEP = 1.f / 60.f;
 
-    //for (b2Body* BodyIterator = physicsWorld->GetBodyList(); BodyIterator != 0; BodyIterator = BodyIterator->GetNext())
+void PhysicsManager::Update(float dt)
+{
+    ////this->physicsWorld->Step(P_TIMESTEP, velocityIterations, positionIterations);
+    //this->physicsWorld->Step(dt, velocityIterations, positionIterations);
+    //this->physicsWorld->ClearForces();
+
+    float progress = 0.0;
+    while (progress < dt)
+    {
+        float step = min((dt - progress), FIXED_TIMESTEP);
+        this->physicsWorld->Step(step, velocityIterations, positionIterations);
+        progress += step;
+    }
 }
 
 unsigned int PhysicsManager::RemoveBody(b2Body* body)
@@ -328,6 +337,15 @@ void PhysicsManager::BeginContact(b2Contact* contact)
 
     if (!goA || !goB)
         return;
+
+    b2Vec2 cnormal = contact->GetManifold()->localNormal;
+    bool bca = goA->OnBeginContact(goB, { cnormal.x, cnormal.y });
+    bool bcb = goB->OnBeginContact(goA, { -cnormal.x, -cnormal.y });
+
+    if (!bca || !bcb)
+    {
+        contact->SetEnabled(false);
+    }
 
     if (goA->debugMode || goB->debugMode)
     {
@@ -439,6 +457,21 @@ void PhysicsManager::BeginContact(b2Contact* contact)
 
 void PhysicsManager::EndContact(b2Contact* contact)
 {
+    if (contact->IsEnabled())
+    {
+        b2Fixture* fixtureA = contact->GetFixtureA();
+        b2Fixture* fixtureB = contact->GetFixtureB();
+
+        GameObject* goA = static_cast<GameObject*>(reinterpret_cast<GameObject*>(fixtureA->GetBody()->GetUserData().pointer));
+        GameObject* goB = static_cast<GameObject*>(reinterpret_cast<GameObject*>(fixtureB->GetBody()->GetUserData().pointer));
+
+        if (goA && goB)
+        {
+            //b2Vec2 cnormal = contact->GetManifold()->localNormal;
+            goA->OnEndContact(goB);
+            goB->OnEndContact(goA);
+        }
+    }
     if (oneWayPlatforms >= 2)
     {
         contact->SetEnabled(true);
@@ -457,29 +490,28 @@ bool Intersects(const b2AABB& a, const b2AABB& b)
 
 void PreSolvePlayerCollision(b2Contact * contact, b2Vec2 cnormal, GameObject * goA, GameObject * goB, b2Fixture * fixtureA, b2Fixture * fixtureB)
 {
-    const float epsilon = 0.1f;
+    const float epsilon = 0.01f;
 
-    //auto plyr_pos = fixtureA->GetBody()->GetPosition();
-    b2Vec2 plyr_velo = fixtureA->GetBody()->GetLinearVelocity();
+    auto plyr_body = fixtureA->GetBody();
+    if (!plyr_body || !plyr_body->IsEnabled())
+        return;
+    if (!fixtureB->GetBody()->IsEnabled())
+        return;
+
+    b2Vec2 plyr_velo = plyr_body->GetLinearVelocity();
 
     auto plyr_aabb = fixtureA->GetAABB(0);
     auto plyr_mins = plyr_aabb.GetCenter() - plyr_aabb.GetExtents();
-    //auto plyr_prevpos = plyr_mins - plyr_velo2;
 
     auto obj_aabb = fixtureB->GetAABB(0);
     auto obj_maxs = obj_aabb.GetCenter() + obj_aabb.GetExtents();
 
-    auto below = (plyr_mins.y < obj_maxs.y - epsilon);
-    //auto wasbelow = (plyr_prevpos.y < obj_maxs.y - epsilon);
+    auto pposy = min(goA->posy, goA->prev_posy) * UNRATIO;
 
-    if (cnormal.y > -0.1f || plyr_velo.y > 0.1f || (below))
+    auto below = (max(plyr_mins.y, pposy) < obj_maxs.y - epsilon);
+
+    if (cnormal.y > -0.1f || max(plyr_velo.y, goA->prev_vel.y) > 0.01f || (below))
     {
-        //if (!Intersects(plyr_aabb, obj_aabb))
-        //    DBG_OUTPUT("ERR");
-
-        //bool inside = pl <= cp.x + ce.x && pr >= cp.x - ce.x;
-        //if (inside && pbottom < cp.y + ce.y)
-        //if(plyr_mins.y < obj_maxs.y)
         contact->SetEnabled(false);
     }
 }
@@ -517,12 +549,12 @@ void PhysicsManager::PreSolve(b2Contact* contact, const b2Manifold* oldManifold)
 
         b2Vec2 cnormal = contact->GetManifold()->localNormal;
 
-        if (goA->isCharacter && goB->m_type == Objects::Platform)
+        if (goA->IsCharacter() && goB->m_type == Objects::Platform)
         {
             PreSolvePlayerCollision(contact, cnormal, goA, goB, fixtureA, fixtureB);
         }
 
-        if (goB->isCharacter && goA->m_type == Objects::Platform)
+        if (goB->IsCharacter() && goA->m_type == Objects::Platform)
         {
             PreSolvePlayerCollision(contact, -cnormal, goB, goA, fixtureB, fixtureA);
         }
