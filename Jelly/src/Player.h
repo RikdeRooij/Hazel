@@ -4,6 +4,7 @@
 
 #include "PhysicsManager.h"
 #include "Character.h"
+#include "Weapon.h"
 
 namespace Jelly
 {
@@ -23,6 +24,17 @@ namespace Jelly
 
 
         virtual bool OnCollision(b2Vec2 normal, GameObject* other) override;
+        
 
+        virtual void Draw(int layer) const override;
+
+
+        virtual void Update(float dt) override;
+
+
+        virtual void Delete() override;
+
+        float aimangle = 0;
+        Weapon weapon;
     };
 }

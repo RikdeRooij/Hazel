@@ -100,6 +100,7 @@ void JellyGame::StartGame()
     newBest = playerScoreBestMaxY_prev <= 0;
 
     clockStart = clock();
+    center_x = 0;
     startedMove = false;
 }
 
@@ -117,8 +118,14 @@ void JellyGame::DestroyGame() const
 
 #define DRAW_LAYER_COUNT 5
 
+#if DEBUG && false
+#define LVL_DIST_ZOOMSCALE 0.0f
 #define LVL_DIST_ADD 2.0f
-#define LVL_DIST_DEL 4.0f
+#else
+#define LVL_DIST_ZOOMSCALE 1.0f
+#define LVL_DIST_ADD 2.5f
+#endif
+#define LVL_DIST_DEL 5.0f
 
 
 #define PARTICLES_DX 16.0f
@@ -220,6 +227,11 @@ void JellyGame::OnUpdate(Hazel::Timestep ts)
 
     UpdateGame(ts);
     DrawGame(ts);
+
+    if (Hazel::Input::BeginKeyPress(Hazel::Key::Escape))
+    {
+        Hazel::Application::Get().Close();
+    }
 }
 
 void JellyGame::UpdateGame(Hazel::Timestep& ts)
@@ -240,12 +252,18 @@ void JellyGame::UpdateGame(Hazel::Timestep& ts)
         camAngle = Interpolate::Linearf(m_CameraController.GetCameraRotation(),
             (Random::Float() - 0.5f) * (screenShake + 0.2f) * 25,
                                         0.1f);
-}
+    }
     m_CameraController.SetCameraRotation(camAngle);
     lava->GetBody()->SetTransform(lava->GetBody()->GetPosition(), ((float)sin(runSeconds * 0.67) * 1.5f * DEG2RAD));
 
     //glm::vec3 cam_pos = m_CameraController.GetCamera().GetPosition();
     glm::vec3 cam_pos = m_CameraController.GetCameraPosition();
+    if (cam_pos.x < -1.6f)
+        center_x = (cam_pos.x + 1.6f);
+    else if (cam_pos.x > 1.6f)
+        center_x = (cam_pos.x - 1.6f);
+    else center_x = 0;
+
     float zoom = m_CameraController.GetZoomLevel();
 #if !DEBUG
     if (zoom > 5.0f)
@@ -259,27 +277,37 @@ void JellyGame::UpdateGame(Hazel::Timestep& ts)
     UpdateLavaParticles(lavaParticle, lavaPos, dt);
 
     auto lvly = player_pos.y < 2 ? player_pos.y : cam_pos.y; // use player on start (ignore restart cam movement)
-    objectManager->UpdateLevel(lvly + zoom + LVL_DIST_ADD);
+    objectManager->UpdateLevel(lvly + zoom * LVL_DIST_ZOOMSCALE + LVL_DIST_ADD);
     float delBelow = std::min(lavaPos.y, cam_pos.y - zoom);
     objectManager->RemoveObjectsBelow(delBelow - LVL_DIST_DEL);
+
+    auto playerPos = player->GetPosition();
+    
+    auto lvlctr = objectManager->GetLevelCenter(playerPos);
+    camcenter_x = lvlctr.x;
+    camcenter_y = lvlctr.y;
+    center_x = camcenter_x;
 
     float camyoff = 0.5f - (1.0f - clamp01((player_pos.y - lavaPos.y - 1.0f) * 0.5f));
 
     static bool fixedCamPos = false;
     if (Hazel::Input::BeginKeyPress(Hazel::Key::C))
         fixedCamPos = !fixedCamPos;
-    glm::vec2 look_pos = { player_pos.x, player_pos.y + camyoff };
+    glm::vec2 look_pos = { player_pos.x - center_x, player_pos.y + camyoff };
+
     const float look_limit = 0.5f;
     float llf = clamp01(abs(look_pos.x) - look_limit);
     look_pos.x = fixedCamPos ? 0.0f : Interpolate::Linearf(look_pos.x, clamp(look_pos.x, -look_limit, look_limit), llf * 0.5f);
-    if (look_pos.y < 1.2f) look_pos.y = 1.2f;
+    if (look_pos.y < 1.2f) look_pos.y = min(1.2f, player_pos.y + zoom * 0.75f);
 
     auto newctr = glm::vec3(
-        Interpolate::Linear(cam_pos.x, look_pos.x, dt * 2.f),
+        Interpolate::Linear(cam_pos.x, look_pos.x + center_x, dt * 2.f),
         Interpolate::Linear(cam_pos.y, look_pos.y, dt * 2.f),
         cam_pos.z);
     //m_CameraController.GetCamera().SetPosition(newctr);
     m_CameraController.SetCameraPosition(newctr);
+
+
 
     playerScoreY = static_cast<ulong>(round(max(player->GetPosition().y * 2, 0.f)));
     if (!startedMove && dt > 0)
@@ -373,7 +401,8 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
         for (int i = 0; i <= DRAW_LAYER_COUNT; i++)
         {
             objectManager->DrawObjects(i);
-            if (i == 0) player->Draw(DRAW_LAYER_COUNT);
+            //if (i == 0)
+                player->Draw(i);
             if (i == DRAW_LAYER_COUNT) lava->Draw(DRAW_LAYER_COUNT);
         }
 
@@ -384,6 +413,32 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
             glm::vec4 bcolor = playerScoreMaxY >= playerScoreBestMaxY_prev ? glm::vec4(0, 1, 0, 0.5f) : glm::vec4(1, 0, 0, 0.5f);
             DebugDraw::DrawRay({ -10, playerScoreBestMaxY_prev * 0.5f - 0.5f }, { 20.0f, 0 }, bcolor);
         }
+
+        /*auto playerPos = player->GetPosition();
+        auto playerLvlPosY = playerPos.y / LVL_SCALE;
+        float prevLvlX = 0;
+        float prevLvlY = 0;
+        for (auto& lvlctrx : objectManager->lvl_center_x_pool)
+        {
+            if (lvlctrx.y == 0)
+                continue;
+            if (lvlctrx.y < playerLvlPosY)
+            {
+                DebugDraw::DrawLine({ lvlctrx.x * LVL_SCALE, lvlctrx.y * LVL_SCALE }, playerPos, { 1,0,1,1 });
+                DebugDraw::DrawLine({ prevLvlX * LVL_SCALE, prevLvlY * LVL_SCALE }, playerPos, { 1,1,0,1 });
+
+                float yt = (playerLvlPosY - lvlctrx.y) / (prevLvlY - lvlctrx.y);
+                float tx = Interpolate::Linearf(lvlctrx.x, prevLvlX, yt);
+                float ty = Interpolate::Linearf(lvlctrx.y, prevLvlY, yt);
+
+                camcenter_x = tx * LVL_SCALE;
+                camcenter_y = ty * LVL_SCALE;
+                DebugDraw::DrawLine({ camcenter_x, camcenter_y }, playerPos, { 0,1,1,1 });
+                break;
+            }
+            prevLvlX = lvlctrx.x;
+            prevLvlY = lvlctrx.y;
+        }*/
 
         Hazel::Renderer2D::EndScene();
 
@@ -415,6 +470,8 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
         if (doDebugDraw2)
         {
             Hazel::Renderer2D::BeginScene(m_CameraController.GetCamera());
+
+            DebugDraw::DrawLine({ camcenter_x, camcenter_y }, player->GetPosition(), { 0,1,1,1 });
 
             auto objectList = objectManager->GetObjectList();
             for (std::list<GameObject*>::iterator iter = objectList.begin(); iter != objectList.end(); ++iter)
@@ -469,13 +526,31 @@ void JellyGame::DrawGame(Hazel::Timestep &ts)
             DebugDraw::DrawLine(lava->GetPosition({ 0.0f, 0.0f }), lava->GetPosition({ 1.f, 1.f }), { 1, 0, 1, 1 });
             DebugDraw::DrawLine(lava->GetPosition(), lava->GetPosition({ 0.0f, 0.0f }), { 0, 1, 0, 1 });
 
+
+            DebugDraw::DrawRay({ 0, objectManager->lvl_c_y * LVL_SCALE }, { 0.5f, 0 }, { 0, 0, 1, 1 });
+            DebugDraw::DrawRay({ 0, objectManager->lvl_y * LVL_SCALE }, { -0.5f, 0 }, { 1, 0, 1, 1 });
+            DebugDraw::DrawRay({ -1.0f, objectManager->lvl_l_y * LVL_SCALE }, { -0.5f, 0 }, { 1, 1, 0, 1 });
+            DebugDraw::DrawRay({ 1.0f, objectManager->lvl_r_y * LVL_SCALE }, { 0.5f, 0 }, { 1, 1, 0, 1 });
+
+            const float raylen = 0.3f;
+            for (auto& lvlctrx : objectManager->lvl_centerPool)
+            {
+                if (lvlctrx.y == 0)
+                    continue;
+                DebugDraw::DrawRay({ lvlctrx.x * LVL_SCALE - raylen*.5f, lvlctrx.y * LVL_SCALE }, { raylen, 0 }, { 0,0,1,1 }, -0.025f);
+            }
+
+            auto playerPos = player->GetPosition();
+            for (int i = 0; i < 15; i++)
+            {
+                //DebugDraw::DrawRay({ -1, i - 0.5f }, { 2.0f, 0 }, { 0,1,0,1 });
+                auto lvlctr = objectManager->GetLevelCenter({ playerPos.x, playerPos.y - 7.5f * 0.5f + i * 0.5f });
+                DebugDraw::DrawRay({ lvlctr.x - raylen * .5f, lvlctr.y}, { raylen, 0 }, { 0,1,0,1 }, -0.025f);
+            }
+
             Hazel::Renderer2D::EndScene();
         }
 
-        //for (int i = 0; i < 15; i++)
-        //{
-        //    DebugDraw::DrawRay({ -1, i - 0.5f }, { 2.0f, 0 }, { 0,1,0,1 });
-        //}
 #endif
     }
 }

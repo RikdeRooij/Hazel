@@ -64,6 +64,8 @@ ObjectManager::ObjectManager()
     if (objectList.empty())
         objectList = std::list<GameObject*>();
 
+    lvl_centerPool.resize(lvl_centerPoolIndex + 1, glm::vec2(0, 0));
+
     // Load resources, store them in resource pointers and react to loading errors
     try
     {
@@ -220,13 +222,14 @@ GameObject* ObjectManager::CreateBox(float x, float y, float w, float h, glm::ve
     return object;
 }
 
-Projectile * Jelly::ObjectManager::CreateProjectile(float x, float y, float w, float h, glm::vec4 color, const BodyType bodyType, const FixtureData * fixtureData)
+Projectile * Jelly::ObjectManager::CreateProjectile(float x, float y, float w, float h, float angle, glm::vec4 color, const FixtureData * fixtureData)
 {
     // We create a new object
-    b2Body* physBody = physicsMgr->AddBox(x, y, w * LVL_SCALE, h * LVL_SCALE, 0, bodyType, fixtureData, 0.5f, 0.5f);
+    b2Body* physBody = physicsMgr->AddBox(x, y, w * LVL_SCALE, h * LVL_SCALE, 0, BodyType::dynamicBody, fixtureData, 0.5f, 0.5f);
 
     static TextureRef ptex = Hazel::Texture2D::Create("assets/particle.png");
     Projectile* object = new Projectile(physBody, ptex, w * LVL_SCALE, h * LVL_SCALE, color);
+    object->angle = angle;
     object->Init(Objects::Projectile, 3);
 
     b2BodyUserData data;
@@ -238,7 +241,7 @@ Projectile * Jelly::ObjectManager::CreateProjectile(float x, float y, float w, f
 }
 
 // y-in = @bottom, y-out = @top
-GameObject* ObjectManager::AddBackground(float &y)
+GameObject* ObjectManager::AddBackground(float &y, float rndScale)
 {
     auto bgTex = textures[Textures::Lvl_Background];
     glm::vec2 bgSize = { bgTex.Get()->GetWidth(), bgTex.Get()->GetHeight() };
@@ -250,13 +253,13 @@ GameObject* ObjectManager::AddBackground(float &y)
     bool flip = abs(i % 2) == 1;
 
     GameObject* object = new GameObject(bgTex, 
-                                        { 0, (y - bgHeight) * LVL_SCALE }, 
+                                        { lvl_x * LVL_SCALE, (y - bgHeight) * LVL_SCALE },
                                         { (flip ? -bgSize.x : bgSize.x) * LVL_SCALE, bgSize.y * LVL_SCALE }, 
                                         { 0.5f, 0.f });
     float tx = Random::Float();
     tx = tx < 0.5f ? tx * tx : (1 - ((1 - tx) * (1 - tx)));
     //tx = tx < 0.5f ? tx * tx : (1 - ((1 - tx) * (1 - tx)));
-    object->SetTilingOffset({ tx, 0 });
+    object->SetTilingOffset({ tx * rndScale, 0 });
     object->SetTilingFactor({ Random::Float() < 0.8f ? 1 : -1, 1 });
     object->Init(Objects::Background, 0);
 
@@ -334,7 +337,7 @@ GameObject* ObjectManager::AddWall(float offX, float originX, float& y, float tw
     y += h;
 
     FixtureData fixtureDef = LVL_FIXTURE(1 << Category::World);
-    GameObject* object = CreateBoxPhysicsObject({ offX, (y - h) }, wallSize, { originX, 0 }, 0,
+    GameObject* object = CreateBoxPhysicsObject({ lvl_x + offX, (y - h) }, wallSize, { originX, 0 }, 0,
                                                 texture, staticBody, &fixtureDef);
     object->Init(Objects::Wall, 4);
 
@@ -353,7 +356,7 @@ GameObject* ObjectManager::AddPlatform(float x, float y, glm::vec2 org, float an
 
     auto cat = type == Textures::Lvl_Ground ? Category::World : Category::Platform;
     FixtureData fixtureDef = LVL_FIXTURE(1 << cat);
-    GameObject* object = CreateBoxPhysicsObject({ (x), (y - h) }, texSize, { org.x,  org.y }, angle,
+    GameObject* object = CreateBoxPhysicsObject({ (lvl_x + x), (y - h) }, texSize, { org.x,  org.y }, angle,
                                                 tex, staticBody, &fixtureDef);
     object->Init(Objects::Platform, 2);
 
@@ -371,10 +374,10 @@ GameObject* ObjectManager::AddSawblade(float x, float y)
     float r = (sawSize.x + sawSize.y) * 0.5f;
 
     FixtureData fixtureDef = FixtureData::Category(FixtureData::METAL, 1 << Category::Interactive);
-    b2Body* physBody = physicsMgr->AddCircle(x * LVL_SCALE, y * LVL_SCALE, r * 0.40f * LVL_SCALE, kinematicBody, &fixtureDef);
+    b2Body* physBody = physicsMgr->AddCircle((lvl_x + x) * LVL_SCALE, y * LVL_SCALE, r * 0.40f * LVL_SCALE, kinematicBody, &fixtureDef);
 
     FixtureData fixtureDef2 = FixtureData::Category(FixtureData::SENSOR, 1 << Category::Interactive);
-    b2Body* sensorBody = physicsMgr->AddCircle(x * LVL_SCALE, y * LVL_SCALE, r * 0.46f * LVL_SCALE, staticBody, &fixtureDef2);
+    b2Body* sensorBody = physicsMgr->AddCircle((lvl_x + x) * LVL_SCALE, y * LVL_SCALE, r * 0.46f * LVL_SCALE, staticBody, &fixtureDef2);
 
 #if DEBUG
     //sensorBody->_debug = "sawblade_sensor";
@@ -408,7 +411,7 @@ GameObject* ObjectManager::AddSpike(float x, float y, float angle)
     auto spikeSize = glm::vec2(spikeTex.Get()->GetWidth(), spikeTex.Get()->GetHeight());
 
     FixtureData fixtureDef2 = FixtureData::Category(FixtureData::SENSOR, 1 << Category::Interactive);
-    b2Body* physBody = physicsMgr->AddBox((x)* LVL_SCALE, (y)* LVL_SCALE,
+    b2Body* physBody = physicsMgr->AddBox((lvl_x + x)* LVL_SCALE, (y)* LVL_SCALE,
         (float)spikeSize.x * LVL_SCALE, (float)spikeSize.y * LVL_SCALE, angle, staticBody, &fixtureDef2);
 
     GameObject* object = new GameObject(physBody, spikeTex, { spikeSize.x * LVL_SCALE, spikeSize.y * LVL_SCALE }, { .5f, .5f });
@@ -445,7 +448,7 @@ void ObjectManager::AddSpikes(float x, float y, float angle)
 #define LVL_PLAYER_X 0.5f
 #define LVL_PLAYER_S 1.0f - LVL_PLAYER_X
 
-void ObjectManager::AddPlatforms(float wallOffX)
+void ObjectManager::AddPlatforms(float wallOffX, int modeID)
 {
     int max;
     Textures::Type tex = RandomTexture(Textures::Lvl_Platform_0, Textures::Lvl_Platform_1);
@@ -486,6 +489,11 @@ void ObjectManager::AddPlatforms(float wallOffX)
     GameObject* go =
         AddPlatform(wallOffX * rx, lvl_y, { ox, 0.f }, 0, tex);
 
+    if (modeID == 1)
+        go->SetColor({ 1,1,0,1 });
+    if (modeID == 2)
+        go->SetColor({ 0,1,1,1 });
+
     lvl_prev_double = false;
 
     // small platform on left or right: add another
@@ -496,7 +504,12 @@ void ObjectManager::AddPlatforms(float wallOffX)
         // push to other side, randomize lil bit
         rx = randfunc((-rx * LVL_SECONDS_PUSH) - LVL_SECONDS_RAND, (-rx * LVL_SECONDS_PUSH) + LVL_SECONDS_RAND);
 
-         AddPlatform(wallOffX * rx, lvl_y + randfunc(40, 60), { 1 - ox, 0.f }, 0, Textures::Lvl_Platform_0);
+        GameObject*  go2 = AddPlatform(wallOffX * rx, lvl_y + randfunc(40, 60), { 1 - ox, 0.f }, 0, Textures::Lvl_Platform_0);
+        if (modeID == 1)
+            go2->SetColor({ 1,1,0,1 });
+        if (modeID == 2)
+            go2->SetColor({ 0,1,1,1 });
+
         //go->setColor({ 0.0f, 1.0f, 1.0f, 1.0f });
         lvl_prev_double = true;
     }
@@ -519,7 +532,7 @@ void ObjectManager::GenerateLevel(float y)
 
     lvl_l_y = LVL_END_Y;
     lvl_r_y = LVL_END_Y;
-    lvl_c_y = LVL_END_Y;
+    lvl_c_y = LVL_END_Y - 50;
     lvl_y = LVL_END_Y - LVL_OFFS_Y;
     
     lvl_prev_x = 0; // previous step platform.x
@@ -531,7 +544,15 @@ void ObjectManager::GenerateLevel(float y)
         UpdateLevel(y);
 }
 
+// background   =  610 x 182
+// big-walls    =  198 x 640
+// small-walls  =  198 x 246
+
 #define LVL_SIDE_CHANCE 0.5f
+#define LVL_WAYOFF 6.2f
+#if DEBUG
+#define LVL_DEBUG true
+#endif
 
 void ObjectManager::UpdateLevel(float y)
 {
@@ -539,18 +560,235 @@ void ObjectManager::UpdateLevel(float y)
     float bgHalfX = textures[Textures::Lvl_Background].Get()->GetWidth() * 0.5f;
     float wallOffX = bgHalfX - LVL_WALLS_X;
 
-    if (lvl_c_y < y)
-        AddBackground(lvl_c_y);
-
     static bool wall_side_l = false;
     static bool wall_side_r = false;
     static float wall_sidew_l = 0;
     static float wall_sidew_r = 0;
+    static GameObject* last_wall_l = nullptr;
+    static GameObject* last_wall_r = nullptr;
+
+
+    bool goleft = false;
+    bool goright = false;
+
+    while (lvl_c_y < y && !goleft && !goright)
+    {
+        lvl_centerPool[lvl_centerPoolIndex] = glm::vec2(lvl_x, lvl_c_y);
+        lvl_centerPoolIndex = --lvl_centerPoolIndex % lvl_centerPool.size();
+
+        AddBackground(lvl_c_y);
+
+        goleft = (abs(lvl_c_y - lvl_l_y) <= 32) && (lvl_c_y - lvl_l_y) > -10 && y > 1;
+        goright = (abs(lvl_c_y - lvl_r_y) <= 32) && (lvl_c_y - lvl_r_y) > -10 && y > 1;
+        //DBG_OUTPUT("l: %.1f   r: %.1f", (lvl_c_y - lvl_l_y), (lvl_c_y - lvl_r_y));
+    }
+
+    if (lvl_y < y)
+    {
+        lvl_y += LVL_PLATFORM_Y;
+        AddPlatforms(wallOffX);
+    }
+
+    float lvl_x_prev = lvl_x;
+
+    if (goleft && !goright && lvl_x > -1)
+    {
+        lvl_centerPool[lvl_centerPoolIndex] = glm::vec2(lvl_x, lvl_c_y);
+        lvl_centerPoolIndex = --lvl_centerPoolIndex % lvl_centerPool.size();
+
+        while (lvl_y < lvl_l_y)
+        {
+            lvl_y += LVL_PLATFORM_Y;
+            AddPlatforms(wallOffX, 2);
+        }
+
+        // ctr
+        float bgHalfY = textures[Textures::Lvl_Background].Get()->GetHeight() * 0.5f;
+        float lvl_c_y_prev = lvl_c_y;
+        lvl_x = lvl_x_prev;
+        AddBackground(lvl_c_y, 0.0f);
+        lvl_y += LVL_PLATFORM_Y;
+        AddPlatforms(wallOffX, 1);
+        lvl_x = lvl_x_prev - LVL_WAYOFF / LVL_SCALE;
+        AddBackground(lvl_c_y_prev, 0.0f);
+
+        do
+        {
+            lvl_x = lvl_x_prev;
+            AddBackground(lvl_c_y, 0.0f);
+            if (lvl_c_y_prev + bgHalfY * 2 < lvl_r_y)
+            {
+                lvl_y += LVL_PLATFORM_Y;
+                AddPlatforms(wallOffX, 1);
+            }
+            lvl_x = lvl_x_prev - LVL_WAYOFF / LVL_SCALE;
+            AddBackground(lvl_c_y_prev, 0.0f);
+        } while (lvl_c_y_prev + bgHalfY < lvl_r_y);
+
+        lvl_y -= LVL_PLATFORM_Y;
+        lvl_y -= LVL_PLATFORM_Y;
+        float dy = lvl_c_y - lvl_r_y;
+
+        // right
+        if (dy > 0)
+        {
+            lvl_x = lvl_x_prev;
+            Textures::Type texType2 = dy > 320
+                ? RandomTexture(Textures::Lvl_Wall_Right_Big_0, Textures::Lvl_Wall_Right_Big_1)
+                : RandomTexture(Textures::Lvl_Wall_Right_Small_0, Textures::Lvl_Wall_Right_Small_1);
+            auto rwallTex = textures[texType2];
+            auto rwallSize = glm::vec2(rwallTex.Get()->GetWidth(), rwallTex.Get()->GetHeight());
+            rwallSize.y = dy;
+            float roffset = wall_sidew_r > 0 ? (rwallSize.x + (LVL_OVERLAP * 2)) : 0;
+            //rwallSize.y = (lvl_c_y - lvl_r_y);
+            last_wall_r = AddWall(wallOffX + wall_sidew_r / LVL_SCALE - roffset, 0,
+                                 lvl_r_y, rwallSize.x, rwallSize.y, rwallTex);
+#if LVL_DEBUG
+            last_wall_r->SetColor({ 0,1,1,1 });
+#endif
+        }
+        else
+        {
+            //lvl_r_y -= last_wall_r->height / LVL_SCALE;
+            last_wall_r->height += dy * LVL_SCALE;
+            lvl_r_y += dy;
+        }
+
+        // right ground
+        lvl_x = lvl_x_prev;
+        auto floor2 = AddPlatform(wallOffX + 198 + 48, lvl_r_y, { 1, 0 }, 0, Textures::Lvl_Ground);
+        floor2->m_type = Objects::Ground;
+        lvl_r_y += floor2->GetHeight() / LVL_SCALE - LVL_OVERLAP;
+#if LVL_DEBUG
+        floor2->SetColor({ 0,1,0,1 });
+#endif
+        //AddRightWall(wallOffX, lvl_r_y);
+
+        // left
+        lvl_x = lvl_x_prev;
+        auto floor = AddPlatform(-(wallOffX), lvl_l_y, { 1, 0 }, 0, Textures::Lvl_Ground);
+        floor->m_type = Objects::Ground;
+        lvl_l_y += floor->GetHeight() / LVL_SCALE - LVL_OVERLAP;
+#if LVL_DEBUG
+        floor->SetColor({ 1, 0, 0, 1 });
+#endif
+
+        lvl_x = lvl_x_prev - LVL_WAYOFF / LVL_SCALE;
+        wall_sidew_l = 2.48000002f;
+        wall_side_l = true;
+
+        Textures::Type texType = RandomTexture(Textures::Lvl_Wall_Left_Small_0, Textures::Lvl_Wall_Left_Small_1);
+        auto lwallTex = textures[texType];
+        auto lwallSize = glm::vec2(lwallTex.Get()->GetWidth(), lwallTex.Get()->GetHeight());
+        last_wall_l = AddWall(-(wallOffX + wall_sidew_l / LVL_SCALE - lwallSize.x - (LVL_OVERLAP * 2)), 1,
+                             lvl_l_y, lwallSize.x, lwallSize.y, lwallTex);
+#if LVL_DEBUG
+        last_wall_l->SetColor({ 1, 1, 0, 1 });
+#endif
+    }
+
+
+    if (goright && !goleft && lvl_x < 1)
+    {
+        lvl_centerPool[lvl_centerPoolIndex] = glm::vec2(lvl_x, lvl_c_y);
+        lvl_centerPoolIndex = --lvl_centerPoolIndex % lvl_centerPool.size();
+
+        while (lvl_y < lvl_r_y)
+        {
+            lvl_y += LVL_PLATFORM_Y;
+            AddPlatforms(wallOffX, 2);
+        }
+
+        // ctr
+        float bgHalfY = textures[Textures::Lvl_Background].Get()->GetHeight() * 0.5f;
+        float lvl_c_y_prev = lvl_c_y;
+        lvl_x = lvl_x_prev;
+        AddBackground(lvl_c_y, 0.0f);
+        lvl_y += LVL_PLATFORM_Y;
+        AddPlatforms(wallOffX, 1);
+        lvl_x = lvl_x_prev + LVL_WAYOFF / LVL_SCALE;
+        AddBackground(lvl_c_y_prev, 0.0f);
+        do
+        {
+            lvl_x = lvl_x_prev;
+            AddBackground(lvl_c_y, 0.0f);
+            if (lvl_c_y_prev + bgHalfY * 2 < lvl_l_y)
+            {
+                lvl_y += LVL_PLATFORM_Y;
+                AddPlatforms(wallOffX, 1);
+            }
+            lvl_x = lvl_x_prev + LVL_WAYOFF / LVL_SCALE;
+            AddBackground(lvl_c_y_prev, 0.0f);
+        } while (lvl_c_y_prev + bgHalfY < lvl_l_y);
+
+        lvl_y -= LVL_PLATFORM_Y;
+        lvl_y -= LVL_PLATFORM_Y;
+        float dy = lvl_c_y - lvl_l_y;
+
+        // left
+        if (dy > 0)
+        {
+            lvl_x = lvl_x_prev;
+            Textures::Type texType2 = dy > 320
+                ? RandomTexture(Textures::Lvl_Wall_Left_Big_0, Textures::Lvl_Wall_Left_Big_1)
+                : RandomTexture(Textures::Lvl_Wall_Left_Small_0, Textures::Lvl_Wall_Left_Small_1);
+            auto lwallTex = textures[texType2];
+            auto lwallSize = glm::vec2(lwallTex.Get()->GetWidth(), lwallTex.Get()->GetHeight());
+            lwallSize.y = dy;
+            float loffset = wall_sidew_l > 0 ? (lwallSize.x + (LVL_OVERLAP * 2)) : 0;
+            last_wall_l = AddWall(-(wallOffX + wall_sidew_l / LVL_SCALE - loffset), 1,
+                                 lvl_l_y, lwallSize.x, lwallSize.y, lwallTex);
+#if LVL_DEBUG
+            last_wall_l->SetColor({ 0,1,1,1 });
+#endif
+        }
+        else
+        {
+            //lvl_l_y -= last_wall_l->height / LVL_SCALE;
+            last_wall_l->height += dy * LVL_SCALE;
+            lvl_l_y += dy;
+        }
+
+        // left ground
+        lvl_x = lvl_x_prev;
+        auto floor2 = AddPlatform(-(wallOffX + 198 + 48), lvl_l_y, { 0, 0 }, 0, Textures::Lvl_Ground);
+        floor2->m_type = Objects::Ground;
+        lvl_l_y += floor2->GetHeight() / LVL_SCALE - LVL_OVERLAP;
+#if LVL_DEBUG
+        floor2->SetColor({ 0,1,0,1 });
+#endif
+        //AddRightWall(wallOffX, lvl_r_y);
+
+        // right
+        lvl_x = lvl_x_prev;
+        auto floor = AddPlatform(wallOffX, lvl_r_y, { 0, 0 }, 0, Textures::Lvl_Ground);
+        floor->m_type = Objects::Ground;
+        lvl_r_y += floor->GetHeight() / LVL_SCALE - LVL_OVERLAP;
+#if LVL_DEBUG
+        floor->SetColor({ 1, 0, 0, 1 });
+#endif
+
+        lvl_x = lvl_x_prev + LVL_WAYOFF / LVL_SCALE;
+        wall_sidew_r = 2.48000002f;
+        wall_side_r = true;
+
+        Textures::Type texType = RandomTexture(Textures::Lvl_Wall_Right_Small_0, Textures::Lvl_Wall_Right_Small_1);
+        auto rwallTex = textures[texType];
+        auto rwallSize = glm::vec2(rwallTex.Get()->GetWidth(), rwallTex.Get()->GetHeight());
+        last_wall_r = AddWall((wallOffX + wall_sidew_r / LVL_SCALE - rwallSize.x - (LVL_OVERLAP * 2)), 0,
+                             lvl_r_y, rwallSize.x, rwallSize.y, rwallTex);
+#if LVL_DEBUG
+        last_wall_r->SetColor({ 1, 1, 0, 1 });
+#endif
+    }
+
+    // ################
 
     if (lvl_l_y < y)
     {
-        if (lvl_l_y > (LVL_END_Y * 0.5f) && (randfunc(0.0f, 1.0f) < LVL_SIDE_CHANCE))
+        if ((lvl_l_y > (LVL_END_Y * 0.5f) && (randfunc(0.0f, 1.0f) < LVL_SIDE_CHANCE)))
         {
+            // outset wall
             if (!wall_side_l)
             {
                 auto floor = AddPlatform(-wallOffX, lvl_l_y, { 1, 0 }, 0, Textures::Lvl_Platform_1);
@@ -558,23 +796,28 @@ void ObjectManager::UpdateLevel(float y)
                 lvl_l_y += floor->GetHeight() / LVL_SCALE - LVL_OVERLAP;
                 wall_sidew_l = floor->GetWidth();
             }
+
             wall_side_l = true;
             Textures::Type texType = RandomTexture(Textures::Lvl_Wall_Left_Small_0, Textures::Lvl_Wall_Left_Small_1);
             auto lwallTex = textures[texType];
             auto lwallSize = glm::vec2(lwallTex.Get()->GetWidth(), lwallTex.Get()->GetHeight());
-            AddWall(-(wallOffX + wall_sidew_l / LVL_SCALE - lwallSize.x - (LVL_OVERLAP * 2)), 1,
+            last_wall_l = AddWall(-(wallOffX + wall_sidew_l / LVL_SCALE - lwallSize.x - (LVL_OVERLAP * 2)), 1,
                     lvl_l_y, lwallSize.x, lwallSize.y, lwallTex);
         }
         else
         {
+            // normal wall
             if (wall_side_l)
             {
-                auto floor2 = AddPlatform(-wallOffX, lvl_l_y, { 1, 0 }, 0, Textures::Lvl_Platform_1);
+                // Lvl_Platform_1 = 2.48000002;  Lvl_Platform_0 = 1.45999992;  Ground = 8.78999996;
+                Textures::Type tex = (wall_sidew_l > 4 ? Textures::Lvl_Ground : Textures::Lvl_Platform_1);
+                auto floor2 = AddPlatform(-wallOffX, lvl_l_y, { 1, 0 }, 0, tex);// Textures::Lvl_Platform_1);
                 floor2->m_type = Objects::Ground;
                 lvl_l_y += floor2->GetHeight() / LVL_SCALE - LVL_OVERLAP;
             }
             wall_side_l = false;
-            AddLeftWall(wallOffX, lvl_l_y);
+            wall_sidew_l = 0;
+            last_wall_l = AddLeftWall(wallOffX, lvl_l_y);
         }
     }
 
@@ -594,7 +837,7 @@ void ObjectManager::UpdateLevel(float y)
             Textures::Type texType = RandomTexture(Textures::Lvl_Wall_Right_Small_0, Textures::Lvl_Wall_Right_Small_1);
             auto rwallTex = textures[texType];
             auto rwallSize = glm::vec2(rwallTex.Get()->GetWidth(), rwallTex.Get()->GetHeight());
-            AddWall(wallOffX + wall_sidew_r / LVL_SCALE - rwallSize.x - (LVL_OVERLAP*2), 0,
+            last_wall_r = AddWall(wallOffX + wall_sidew_r / LVL_SCALE - rwallSize.x - (LVL_OVERLAP*2), 0,
                     lvl_r_y, rwallSize.x, rwallSize.y, rwallTex);
         }
         else
@@ -606,15 +849,11 @@ void ObjectManager::UpdateLevel(float y)
                 lvl_r_y += floor2->GetHeight() / LVL_SCALE - LVL_OVERLAP;
             }
             wall_side_r = false;
-            AddRightWall(wallOffX, lvl_r_y);
+            wall_sidew_r = 0;
+            last_wall_r = AddRightWall(wallOffX, lvl_r_y);
         }
     }
 
-    if (lvl_y < y)
-    {
-        lvl_y += LVL_PLATFORM_Y;
-        AddPlatforms(wallOffX);
-    }
 }
 
 int ObjectManager::RemoveObjectsBelow(const float y) const
@@ -630,7 +869,7 @@ int ObjectManager::RemoveObjectsBelow(const float y) const
         {
             auto pos = (*i)->GetPosition();
             auto h = (*i)->GetHeight();
-            if ((pos.y + h * .5f < y) || pos.y > y + 32)
+            if ((pos.y + h * .5f < y) || pos.y > y + 64)
             {
                 GameObject* go = *i;
                 i = objectList.erase(i); // update iterator
@@ -698,4 +937,55 @@ void ObjectManager::DrawObjects(const int layer) const
 {
     for (std::list<GameObject*>::iterator iter = objectList.begin(); iter != objectList.end(); ++iter)
         (*iter)->Draw(layer);
+}
+
+glm::vec2 ObjectManager::GetLevelCenter(glm::vec2 playerPos)
+{
+    glm::vec2 center(playerPos.x, playerPos.y);
+    auto playerLvlPosX = playerPos.x / LVL_SCALE;
+    auto playerLvlPosY = playerPos.y / LVL_SCALE;
+    float prevLvlX = 0;
+    float prevLvlY = 0;
+    
+    int poolSize = static_cast<int>(lvl_centerPool.size());
+    for (int i = 0; i < poolSize; i++)
+    {
+        int j = (lvl_centerPoolIndex + i) - ((lvl_centerPoolIndex + i) / poolSize) * poolSize;
+        auto& lvlctrx = lvl_centerPool[j];
+    
+    //for (auto& lvlctrx : lvl_centerPool)
+    //{
+        if (lvlctrx.y == 0)
+            continue;
+        if (lvlctrx.y < playerLvlPosY)
+        {
+            float xt = clamp01(abs(prevLvlX - lvlctrx.x) < 0.1f ? 0.0f : ((playerLvlPosX - lvlctrx.x) / (prevLvlX - lvlctrx.x)));
+            float yt = clamp01((playerLvlPosY - lvlctrx.y) / (prevLvlY - lvlctrx.y));
+
+            /*
+            float t0 = clamp01(xt * yt);
+            float t1 = clamp01(1 - ((1 - xt) * (1 - yt)));
+
+            float t00 = 1 - clamp01(t0 * 2);
+            float t11 = clamp01((t1 - 0.5f) * 2);
+
+            float topright = Interpolate::Linearf(1.f, (1 - t00) * 0.5f + 0.5f, t00 * t1);;
+            float tt = t00 * t0 + t11 * t1 * topright;
+            */
+
+            float yn = clamp01((yt - yt * yt) * 4);
+            float tt = Interpolate::Linearf(Interpolate::Hermite(0.f, 1.f, yt), xt, 1 - (1-yn) * (1-yn));
+
+            //float t = (xt + yt) * 0.5f; // max(xt, yt);
+            float tx = Interpolate::Linearf(lvlctrx.x, prevLvlX, tt);
+            float ty = Interpolate::Linearf(lvlctrx.y, prevLvlY, yt);
+
+            center.x = tx * LVL_SCALE;
+            center.y = ty * LVL_SCALE;
+            break;
+        }
+        prevLvlX = lvlctrx.x;
+        prevLvlY = lvlctrx.y;
+    }
+    return center;
 }

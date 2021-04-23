@@ -157,15 +157,17 @@ void GameObject::Draw(int layer) const
     float px = posx + abs(width) * (0.5f - m_origin.x);
     float py = posy + height * (0.5f - m_origin.y);
 
+    Draw({ px, py }, { width, height }, angle);
+}
 
+void Jelly::GameObject::Draw(glm::vec2 pos, glm::vec2 size, float angle) const
+{
     auto z = -0.99f + (static_cast<float>(m_type) / static_cast<float>(Objects::MAX_COUNT) * 0.5f);
     z += (instanceID * 0.000001f);
-
     if (m_texture.Has())
-        Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width, height }, angle, m_texture.Get(), m_texture_tiling, m_texture_offset, m_color);
+        Hazel::Renderer2D::DrawRotatedQuad({ pos.x, pos.y, z }, { size.x, size.y }, angle, m_texture.Get(), m_texture_tiling, m_texture_offset, m_color);
     else
-        Hazel::Renderer2D::DrawRotatedQuad({ px, py, z }, { width, height }, angle, m_color);
-
+        Hazel::Renderer2D::DrawRotatedQuad({ pos.x, pos.y, z }, { size.x, size.y }, angle, m_color);
     //Hazel::Renderer2D::DrawRotatedQuad({ posx, posy, z +0.001f }, { 0.2f, 0.2f }, angle, { 1,1,1,1 });
 }
 

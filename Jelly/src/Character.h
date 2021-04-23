@@ -25,7 +25,6 @@ namespace Jelly
                 this->update_move = true;
             }
             bool left; bool right; bool down; bool up;
-            bool fire = false;
             bool alt = false;
             bool update_move = true;
         } Input;
@@ -95,7 +94,6 @@ namespace Jelly
         float lastLandTime = 0;
         float lastInsideTime = 0;
         float lastInsideY = 0;
-        float lastFireTime = 0;
         bool jumpanim = false;
         float anim_squish = 0;
 

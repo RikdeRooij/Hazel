@@ -7,6 +7,7 @@
 
 #include "Globals.h"
 #include "TextureRef.h"
+#include "DebugDraw.h"
 
 namespace Jelly
 {
@@ -18,6 +19,7 @@ namespace Jelly
             Unknown = 0,
 
             Background,
+           // BgObject,
 
             Player,
             Enemy,
@@ -35,11 +37,13 @@ namespace Jelly
 
             Lava,
 
+            Foreground,
+
             MAX_COUNT
         };
 
         static const char * EnumStrings[] = {
-            STRY(Unknown), STRY(Background),
+            STRY(Unknown), STRY(Background), //STRY(BgObject),
             STRY(Player),
             STRY(Enemy),
             STRY(Object),
@@ -49,6 +53,7 @@ namespace Jelly
             STRY(Wall),
             STRY(Spike), 
             STRY(Lava), 
+            STRY(Foreground),
             STRY(MAX_COUNT) };
     }
 
@@ -126,13 +131,17 @@ namespace Jelly
         virtual void LateUpdate(float dt);
 
         virtual void Draw(int layer) const;
+        virtual void Draw(glm::vec2 pos, glm::vec2 size, float angle) const;
 
-        virtual bool OnBeginContact(GameObject* other, glm::vec2 normal) { return true; }
+        virtual bool OnBeginContact(GameObject* other, b2Fixture* fixture, glm::vec2 pos, glm::vec2 normal) { return true; }
         virtual void OnEndContact(GameObject* other) {}
         virtual void Delete();
 
 #if DEBUG
-        virtual void DebugDraw() const {}
+        virtual void DebugDraw() const 
+        {
+            DebugDraw::DrawRay(this->GetPosition() - this->GetSize() * 0.5f, this->GetSize() * 0.5f, { 0.5f, 0.5f, 0.5f, 0.5f });
+        }
 #endif
 
         bool IsCharacter() const { return m_type == Objects::Player || m_type == Objects::Enemy; }
@@ -148,6 +157,8 @@ namespace Jelly
         b2Vec2 prev_vel = b2Vec2(0.f, 0.f);
         float posx;
         float posy;
+        float width;
+        float height;
         float angle;
         float prev_posx;
         float prev_posy;
@@ -159,8 +170,6 @@ namespace Jelly
 
         // Member variables
         b2Body* m_body;
-        float width;
-        float height;
         glm::vec2 m_origin;
 
         glm::vec4 m_color = { 1.0f, 1.0f, 1.0f, 1.0f };

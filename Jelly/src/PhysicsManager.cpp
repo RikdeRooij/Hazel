@@ -338,15 +338,6 @@ void PhysicsManager::BeginContact(b2Contact* contact)
     if (!goA || !goB)
         return;
 
-    b2Vec2 cnormal = contact->GetManifold()->localNormal;
-    bool bca = goA->OnBeginContact(goB, { cnormal.x, cnormal.y });
-    bool bcb = goB->OnBeginContact(goA, { -cnormal.x, -cnormal.y });
-
-    if (!bca || !bcb)
-    {
-        contact->SetEnabled(false);
-    }
-
     if (goA->debugMode || goB->debugMode)
     {
         contact->SetEnabled(false);
@@ -380,6 +371,31 @@ void PhysicsManager::BeginContact(b2Contact* contact)
             if (goA && (goA->m_type == Objects::Lava))
             {
                 static_cast<Character*>(goB)->Die();
+            }
+        }
+    }
+    else
+    {
+        int numPoints = contact->GetManifold()->pointCount;
+        b2WorldManifold worldManifold;
+        contact->GetWorldManifold(&worldManifold);
+        glm::vec2 avgPos(0, 0);
+        if (numPoints > 0)
+        {
+            for (int i = 0; i < numPoints; i++)
+            {
+                glm::vec2 sfPos = { worldManifold.points[i].x * RATIO, worldManifold.points[i].y * RATIO };
+                avgPos += sfPos;
+            }
+            avgPos = glm::vec2(avgPos.x / (float)numPoints, avgPos.y / (float)numPoints);
+
+            b2Vec2 cnormal = contact->GetManifold()->localNormal;
+            bool bca = goA->OnBeginContact(goB, fixtureB, avgPos, { cnormal.x, cnormal.y });
+            bool bcb = goB->OnBeginContact(goA, fixtureA, avgPos, { -cnormal.x, -cnormal.y });
+
+            if (!bca || !bcb)
+            {
+                contact->SetEnabled(false);
             }
         }
     }

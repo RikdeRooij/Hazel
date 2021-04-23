@@ -71,6 +71,10 @@ template<typename T, typename U> inline void safeDivide(T& num, U absDenom) { if
 template<typename T> inline T safeDivided(T num, T absDenom) { return absDenom > EPSILON ? (num / absDenom) : 0; }
 template<typename T, typename U> inline T safeDivided(const T& num, U absDenom) { return absDenom > EPSILON ? (num / absDenom) : (num * 0); }
 
+
+/// <summary>Loops the value <see cref="t"/>, so that it is never larger than <see cref="length"/> and never smaller than 0.</summary>
+template<typename T> inline T repeat(T t, T length) { return t - floor(t / length) * length; }
+
 // --------------------------------
 
 // PI constant.
@@ -233,6 +237,11 @@ inline glm::vec2 clipVector(const glm::vec2& vector, const glm::vec2& normal, fl
 {
     auto dot = dotProduct(vector, normal);
     return dot < 0 ? translatedVector(vector, normal, safeDivided(dot, dotProduct(normal, normal)) * overbounce) : vector;
+}
+inline glm::vec2 reflectVector(const glm::vec2& vector, const glm::vec2& normal, float overbounce = 1)
+{
+    float dt = dotProduct(normal, vector);
+    return glm::vec2(vector.x - 2 * dt * normal.x * overbounce, vector.y - 2 * dt * normal.y * overbounce);
 }
 
 #pragma endregion [VECTORS]

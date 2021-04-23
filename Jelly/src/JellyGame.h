@@ -68,6 +68,10 @@ namespace Jelly
         Player* player;
         GameObject* lava;
 
+        float center_x = 0;
+        float camcenter_x = 0;
+        float camcenter_y = 0;
+
         ulong playerScoreY = 0;
         ulong playerScoreMaxY = 0;
         ulong playerScoreBestMaxY = 0;

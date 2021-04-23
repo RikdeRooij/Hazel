@@ -2,6 +2,7 @@
 
 #include "box2d/b2_world_callbacks.h"
 #include "box2d/b2_math.h"
+#include "GameObject.h"
 
 class RaysCastCallback : public b2RayCastCallback
 {

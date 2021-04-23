@@ -5,6 +5,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/compatibility.hpp>
 #include "Hazel/Renderer/Renderer2D.h"
+#include "RaysCastCallback.h"
 
 using namespace Jelly;
 
@@ -37,6 +38,14 @@ void ParticleSystem::OnUpdate(float ts)
 
         m_Count++;
         particle.LifeRemaining -= ts;
+
+        RaysCastCallback callback = RaysCastCallback::RayCastVec({ particle.Position.x, particle.Position.y },
+                                                                 { particle.Velocity.x * (float)ts, particle.Velocity.y * (float)ts });
+        if (callback.m_hit && callback.m_fraction > 0)
+        {
+            particle.Velocity = reflectVector(particle.Velocity, { callback.m_normal.x , callback.m_normal.y });
+        }
+
         particle.Position += particle.Velocity * (float)ts;
         particle.Rotation += 0.01f * ts;
 

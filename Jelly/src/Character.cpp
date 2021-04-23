@@ -155,18 +155,6 @@ void Character::Update(float dt)
             }
         }
     }
-
-    if (input.fire)
-    {
-        if ((time - lastFireTime) > 300)
-        {
-            lastFireTime = time;
-            FixtureData fixtureDef = FixtureData::Category(FixtureData::PROJECTILE, (1 << Category::Projectile));
-            fixtureDef.filter.maskBits = ~((1 << Category::Projectile) | (1 << Category::Player) | (1 << Category::Platform));
-            auto fp = ObjectManager::CreateProjectile(posx - width * 0.25f, posy, 20, 10, { 1,0,0,1 }, dynamicBody, &fixtureDef);
-            fp->Start(this, 12 * -width, 0.5f);
-        }
-    }
 }
 
 Character::Input Character::UpdateInput()
@@ -464,6 +452,15 @@ void Character::Jump(float x, float power)
 
     b2Vec2 impulse = b2Vec2(x, power);
     GetBody()->SetLinearVelocity(impulse);
+
+
+    m_Particle.ColorBegin = { 0.45f, 0.4f, 0.3f, 0.5f };
+    m_Particle.ColorEnd = { 0.4f, 0.2f, 0.0f, 0.1f };
+    //m_Particle.Position = { posx , posy - height * 0.4f };
+    float px = Interpolate::Linearf(posx, psc_pos.x, 0.78f);
+    float py = Interpolate::Linearf(posy, psc_pos.y, 0.78f);
+    m_Particle.Position = { px, py };
+    ParticleSystem::S_Emit(10, m_Particle);
 }
 
 void Character::Move(float dx, float dy)
@@ -481,6 +478,8 @@ void Character::Move(float dx, float dy)
 
 void Character::Explode()
 {
+    m_Particle.ColorBegin = { 0.0f, 0.9f, 0.0f, 1.0f };
+    m_Particle.ColorEnd = { 0.0f, 0.8f, 0.0f, 0.1f };
     m_Particle.Position = { posx , posy };
     ParticleSystem::S_Emit(100, m_Particle);
 }

@@ -71,16 +71,15 @@ namespace Jelly
 
         static GameObject* CreateBox(float x, float y, float w, float h, glm::vec4 color,
                                      const BodyType bodyType, const FixtureData* fixtureData = &FixtureData::DEFAULT);
-        static Projectile* CreateProjectile(float x, float y, float w, float h, glm::vec4 color,
-                                     const BodyType bodyType, const FixtureData* fixtureData = &FixtureData::PROJECTILE);
+        static Projectile* CreateProjectile(float x, float y, float w, float h, float angle, glm::vec4 color, const FixtureData* fixtureData = &FixtureData::PROJECTILE);
 
-        GameObject* AddBackground(float &y);
+        GameObject* AddBackground(float &y, float rndScale = 1.0f);
         GameObject* AddLeftWall(float offX, float &y);
         GameObject* AddRightWall(float offX, float &y);
         GameObject * AddWall(float offX, float originX, float & y, float tw, float th, TextureRef texture);
 
         GameObject* AddPlatform(float x, float y, glm::vec2 org, float angle, Textures::Type type);
-        void AddPlatforms(float wallOffX);
+        void AddPlatforms(float wallOffX, int modeID = 0);
 
         GameObject* AddSawblade(float x, float y);
         GameObject* AddSpike(float x, float y, float angle = 0);
@@ -97,7 +96,7 @@ namespace Jelly
 
         void DrawObjects(const int layer) const;
 
-    protected:
+        public:
 
         GameObject* CreateBoxPhysicsObject(glm::vec2 pos, glm::vec2 size, glm::vec2 origin, float angle, TextureRef tex,
                                            const BodyType bodyType, const FixtureData * fixtureData)
@@ -118,12 +117,17 @@ namespace Jelly
         // list of pointers to the objects
         static std::list<GameObject*> objectList;
 
+        float lvl_x = 0;
         float lvl_l_y = 0;
         float lvl_r_y = 0;
         float lvl_c_y = 0;
         float lvl_y = 0;
         float lvl_prev_x = 0; // previous step platform.x
         bool lvl_prev_double = false; // placed 2 platforms previous step
+
+        glm::vec2 GetLevelCenter(glm::vec2 playerPos);
+        std::vector<glm::vec2> lvl_centerPool;
+        uint32_t lvl_centerPoolIndex = 999;
 
         std::map<Textures::Type, TextureRef> textures;
 
@@ -134,6 +138,7 @@ namespace Jelly
 
         //float(*randfunc)(float, float) = &glm::linearRand<float>;
         float(*randfunc)(float, float) = &Random;
+
 
     };
 

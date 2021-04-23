@@ -49,7 +49,7 @@ void Enemy::Update(float dt)
 
 #define MIN_WALL_NORMAL 0.71f
 
-#define MIN_TURN_NORMAL 0.15f
+#define MIN_TURN_NORMAL 0.16f
 
 Character::Input Enemy::UpdateInput()
 {

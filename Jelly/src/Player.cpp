@@ -13,6 +13,11 @@ Player::Player(b2Body* bd, TextureAtlas textureRef, float w, float h, float scal
     PM_SCALE = 1.0f;
     dontDestroy = true;
     Player::instance = this;
+
+    TextureRef dummy = Hazel::Texture2D::Create("assets/pistol_03.png");
+    weapon = Weapon(dummy, { posx, posy }, { 0.4f, 0.25f }, { 0.5f, 0.5f });
+    weapon.SetColor({ 1.0f, 0.5f, 0.0f, 1.0f });
+    weapon.Init(Objects::Object, 2);
 }
 
 Player::~Player()
@@ -26,9 +31,52 @@ bool IsKeyPressed(Hazel::KeyCode key, Hazel::KeyCode alt)
         || Hazel::Input::IsKeyPressed(alt);
 }
 
+void Jelly::Player::Update(float dt)
+{
+    Character::Update(dt);
+    weapon.Update(dt);
+    weapon.posx = posx - width * 0.4f;
+    weapon.posy = posy;
+
+    float ra = 0;
+    if (Hazel::Input::IsKeyPressed(Hazel::Key::Q)) ra -= 1.0f;
+    if (Hazel::Input::IsKeyPressed(Hazel::Key::E)) ra += 1.0f;
+
+    aimangle += (ra * dt * 120 * sign(width));
+    aimangle = clamp(aimangle, -45.f, 90.f);
+    
+    weapon.height = -sign(width) * abs(weapon.height);
+    weapon.angle = width < 0 ? aimangle : (180 - aimangle);
+
+    float a = aimangle * DEG2RAD;
+    if (width > 0)  a = PI - a;
+    float r = abs(width) * 0.48f;
+    weapon.posx = posx + r * (float)cos(a);
+    weapon.posy = posy + r * (float)sin(a);
+
+    bool fire = IsKeyPressed(Hazel::Key::Space, Hazel::Key::F);
+    if (fire)
+        weapon.Shoot(this, 12, 5.0f);
+
+}
+
+void Jelly::Player::Delete()
+{
+    weapon.Delete();
+    Character::Delete();
+}
+
+void Jelly::Player::Draw(int layer) const
+{
+    if(layer == 0)
+        Character::Draw(this->m_draw_layer);
+    if (layer == 2)
+        weapon.Draw(2);
+}
+
 Character::Input Player::UpdateInput()
 {
-    if (Hazel::Input::BeginKeyPress(Hazel::Key::X))
+    if (Hazel::Input::BeginKeyPress(Hazel::Key::L))
         Explode();
 
     if (Hazel::Input::BeginKeyPress(Hazel::Key::K))
@@ -61,7 +109,6 @@ Character::Input Player::UpdateInput()
 
         Input ninput = Input(false, false, false, false);
         ninput.update_move = false;
-        ninput.fire = IsKeyPressed(Hazel::Key::Space, Hazel::Key::F);
         return ninput;
     }
 
@@ -70,7 +117,6 @@ Character::Input Player::UpdateInput()
                         IsKeyPressed(Hazel::Key::Up, Hazel::Key::W),
                         IsKeyPressed(Hazel::Key::Down, Hazel::Key::S));
     input.update_move = true;
-    input.fire = IsKeyPressed(Hazel::Key::Space, Hazel::Key::F);
     return input;
 }
 

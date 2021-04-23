@@ -27,7 +27,7 @@ void DebugDraw::DrawRay(const glm::vec2 & pos, const glm::vec2 & dir, const glm:
     auto angleInDegrees = (angleInRadians / PI) * 180.0f;
 
     auto v = pos + (dir * 0.5f);
-    glm::vec2 size = { len, lineWidth };
+    glm::vec2 size = { len, abs(lineWidth) };
 
     //Hazel::Renderer2D::DrawRotatedQuad({ v.x, v.y, PZ + 0.42f }, { size.x, size.y }, angleInDegrees, color);
     //Hazel::Renderer2D::DrawRotatedQuad({ pos.x, pos.y, PZ + 0.43f }, { lineWidth * 1.3f, lineWidth * 1.3f }, 0, color);
@@ -36,6 +36,9 @@ void DebugDraw::DrawRay(const glm::vec2 & pos, const glm::vec2 & dir, const glm:
     glm::mat4 transform = glm::translate(glm::mat4(1.0f), position)
         * glm::rotate(glm::mat4(1.0f), glm::radians(angleInDegrees), { 0.0f, 0.0f, 1.0f })
         * glm::scale(glm::mat4(1.0f), { size.x, size.y, 1.0f });
+    if(lineWidth<0)
+    Hazel::Renderer2D::DrawQuad(transform, color);
+    else
     Hazel::Renderer2D::DrawQuad(RayQuadVertexPositions, transform, color);
 }
 
