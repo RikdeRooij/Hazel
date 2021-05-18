@@ -444,6 +444,10 @@ void ObjectManager::AddSpikes(float x, float y, float angle)
     }
 }
 
+#if DEBUG
+#define LVL_DEBUG true
+#endif
+
 // Player can squeeze through
 #define LVL_PLAYER_X 0.5f
 #define LVL_PLAYER_S 1.0f - LVL_PLAYER_X
@@ -489,10 +493,12 @@ void ObjectManager::AddPlatforms(float wallOffX, int modeID)
     GameObject* go =
         AddPlatform(wallOffX * rx, lvl_y, { ox, 0.f }, 0, tex);
 
+#if LVL_DEBUG
     if (modeID == 1)
         go->SetColor({ 1,1,0,1 });
     if (modeID == 2)
         go->SetColor({ 0,1,1,1 });
+#endif
 
     lvl_prev_double = false;
 
@@ -505,10 +511,12 @@ void ObjectManager::AddPlatforms(float wallOffX, int modeID)
         rx = randfunc((-rx * LVL_SECONDS_PUSH) - LVL_SECONDS_RAND, (-rx * LVL_SECONDS_PUSH) + LVL_SECONDS_RAND);
 
         GameObject*  go2 = AddPlatform(wallOffX * rx, lvl_y + randfunc(40, 60), { 1 - ox, 0.f }, 0, Textures::Lvl_Platform_0);
+#if LVL_DEBUG
         if (modeID == 1)
             go2->SetColor({ 1,1,0,1 });
         if (modeID == 2)
             go2->SetColor({ 0,1,1,1 });
+#endif
 
         //go->setColor({ 0.0f, 1.0f, 1.0f, 1.0f });
         lvl_prev_double = true;
@@ -550,9 +558,6 @@ void ObjectManager::GenerateLevel(float y)
 
 #define LVL_SIDE_CHANCE 0.5f
 #define LVL_WAYOFF 6.2f
-#if DEBUG
-#define LVL_DEBUG true
-#endif
 
 void ObjectManager::UpdateLevel(float y)
 {

@@ -18,6 +18,7 @@ Player::Player(b2Body* bd, TextureAtlas textureRef, float w, float h, float scal
     weapon = Weapon(dummy, { posx, posy }, { 0.4f, 0.25f }, { 0.5f, 0.5f });
     weapon.SetColor({ 1.0f, 0.5f, 0.0f, 1.0f });
     weapon.Init(Objects::Object, 2);
+    weapon.dontDraw = true;
 }
 
 Player::~Player()
@@ -41,8 +42,9 @@ void Jelly::Player::Update(float dt)
     float ra = 0;
     if (Hazel::Input::IsKeyPressed(Hazel::Key::Q)) ra -= 1.0f;
     if (Hazel::Input::IsKeyPressed(Hazel::Key::E)) ra += 1.0f;
-
     aimangle += (ra * dt * 120 * sign(width));
+    if (ra != 0)
+        weapon.dontDraw = aimangle <= -45.f;
     aimangle = clamp(aimangle, -45.f, 90.f);
     
     weapon.height = -sign(width) * abs(weapon.height);
@@ -88,11 +90,17 @@ Character::Input Player::UpdateInput()
         //GetBody()->SetType(debugMode ? b2_kinematicBody : b2_dynamicBody);
         GetBody()->SetGravityScale(debugMode ? 0.f : 1.f);
         GetBody()->SetLinearDamping(debugMode ? 8.f : 0.f);
+
+        if (debugMode)
+            this->SetColor({ 0.5f, 0.5f, 0.5f, 1.f });
+        else
+            this->SetColor({ 1.f, 1.f, 1.f, 1.f });
     }
 
     if (debugMode)
     {
         b2Vec2 impulse = b2Vec2(0, 0);
+        float speed = 32.0f;
 
         if (Hazel::Input::IsKeyPressed(Hazel::Key::Left))
             impulse.x += -1;
@@ -103,9 +111,14 @@ Character::Input Player::UpdateInput()
         if (Hazel::Input::IsKeyPressed(Hazel::Key::Down))
             impulse.y += -1;
 
+        if (Hazel::Input::IsKeyPressed(Hazel::Key::RightShift))
+            speed *= 2.0;
+        if (Hazel::Input::IsKeyPressed(Hazel::Key::LeftShift))
+            speed *= 3.0;
+
         //GetBody()->SetLinearVelocity(8.f * impulse);
         GetBody()->SetLinearDamping(8.f);
-        GetBody()->ApplyForceToCenter(32.f * impulse, true);
+        GetBody()->ApplyForceToCenter(speed * impulse, true);
 
         Input ninput = Input(false, false, false, false);
         ninput.update_move = false;
@@ -122,6 +135,8 @@ Character::Input Player::UpdateInput()
 
 void Jelly::Player::Die()
 {
+    if (debugMode)
+        return;
     if (dead)
         return;
     Character::Die();

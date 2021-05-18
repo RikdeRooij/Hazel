@@ -3,6 +3,8 @@
 
 bool Weapon::Shoot(GameObject* owner, float speed, float addangle)
 {
+    if (dontDraw)
+        return false;
     if (lastFireTime <= 0)
     {
         //float a = this->angle * DEG2RAD;
@@ -53,5 +55,7 @@ void Jelly::Weapon::Draw(glm::vec2 pos, glm::vec2 size, float angle) const
 
 void Jelly::Weapon::Draw(int layer) const
 {
+    if (dontDraw)
+        return;
     GameObject::Draw(layer);
 }
