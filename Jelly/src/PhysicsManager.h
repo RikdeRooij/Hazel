@@ -5,7 +5,7 @@
 
 #include <list>
 #include "GameObject.h"
-
+#include <string>
 
 #define P_GRAVITY -9.81f
 
@@ -107,7 +107,7 @@ namespace Jelly
         }
 
         /// Use this to store application specific fixture data.
-        std::string userData;
+        std::string userData = "";
         /// The friction coefficient, usually in the range [0,1].
         float friction;
         /// The restitution (elasticity) usually in the range [0,1].

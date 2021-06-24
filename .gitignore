@@ -13,3 +13,8 @@ bin-int/
 **.vcxproj.filters
 **.vcxproj.user
 Sandbox/imgui.ini
+
+# Directories
+Hazel/vendor/VulkanSDK
+Hazelnut/assets/cache
+scripts/__pycache__

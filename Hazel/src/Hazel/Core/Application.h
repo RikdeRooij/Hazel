@@ -15,43 +15,58 @@ int main(int argc, char** argv);
 
 namespace Hazel {
 
-	class Application
-	{
-	public:
-		Application(const std::string& name = "Hazel App");
-		virtual ~Application();
+    struct ApplicationCommandLineArgs
+    {
+        int Count = 0;
+        char** Args = nullptr;
 
-		void OnEvent(Event& e);
+        const char* operator[](int index) const
+        {
+            HZ_CORE_ASSERT(index < Count);
+            return Args[index];
+        }
+    };
 
-		void PushLayer(Layer* layer);
-		void PushOverlay(Layer* layer);
+    class Application
+    {
+    public:
+        Application(const std::string& name = "Hazel App", ApplicationCommandLineArgs args = ApplicationCommandLineArgs());
+        virtual ~Application();
 
-		Window& GetWindow() { return *m_Window; }
+        void OnEvent(Event& e);
 
-		void Close();
+        void PushLayer(Layer* layer);
+        void PushOverlay(Layer* layer);
 
-		ImGuiLayer* GetImGuiLayer() { return m_ImGuiLayer; }
+        Window& GetWindow() { return *m_Window; }
 
-		static Application& Get() { return *s_Instance; }
-	private:
-		void Run();
-		bool OnWindowClose(WindowCloseEvent& e);
-		bool OnWindowResize(WindowResizeEvent& e);
-	    bool OnWindowMoved(WindowMovedEvent& e);
-	private:
-		Scope<Window> m_Window;
-		ImGuiLayer* m_ImGuiLayer;
-		bool m_Running = true;
-		bool m_Minimized = false;
-		LayerStack m_LayerStack;
-		float m_LastFrameTime = 0.0f;
+        void Close();
+
+        ImGuiLayer* GetImGuiLayer() { return m_ImGuiLayer; }
+
+        static Application& Get() { return *s_Instance; }
+
+        ApplicationCommandLineArgs GetCommandLineArgs() const { return m_CommandLineArgs; }
+    private:
+        void Run();
+        bool OnWindowClose(WindowCloseEvent& e);
+        bool OnWindowResize(WindowResizeEvent& e);
+        bool OnWindowMoved(WindowMovedEvent& e);
+    private:
+        ApplicationCommandLineArgs m_CommandLineArgs;
+        Scope<Window> m_Window;
+        ImGuiLayer* m_ImGuiLayer;
+        bool m_Running = true;
+        bool m_Minimized = false;
+        LayerStack m_LayerStack;
+        float m_LastFrameTime = 0.0f;
         bool m_StartFrame = true;
-	private:
-		static Application* s_Instance;
-		friend int ::main(int argc, char** argv);
-	};
+    private:
+        static Application* s_Instance;
+        friend int ::main(int argc, char** argv);
+    };
 
-	// To be defined in CLIENT
-	Application* CreateApplication();
+    // To be defined in CLIENT
+    Application* CreateApplication(ApplicationCommandLineArgs args);
 
 }
